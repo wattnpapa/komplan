@@ -13,6 +13,7 @@ export const AENDERUNGEN: Aenderung[] = [
   {
     datum: "2026-11-13",
     punkte: [
+      "Sicherer: Löschen einer Stelle mit Unterstellten hat ein „Abbrechen“, Esc und Enter löschen nichts mehr; zwei offene Tabs mit demselben Plan überschreiben sich nicht mehr still; Eingaben überstehen Neuladen direkt nach dem Tippen; der Stand-Knopf zeigt „geändert“, Export und Druck bieten dann einen neuen Stand an, und der Ausdruck trägt Stand und Version (sonst ENTWURF).",
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",
       "Führungsorganisation mit Gliederung, Ziehen zum Umhängen, Einklappen, automatischem Layout, seitlich angehängten Stellen und Hervorhebungen.",
       "Taktische Zeichen aus der Sammlung von Jonas Köritz mit Suche, Favoriten und zuletzt benutzten Zeichen, dazu eigene Zeichen für Stäbe, ELO, LuK, Logistik und ein freies Textzeichen.",

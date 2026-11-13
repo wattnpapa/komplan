@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from "react";
 import { dateiname, herunterladen, pdfExport, type PdfWahl } from "../ausgabe/export";
+import { seitStandGeaendert } from "../modell/stand";
 import type { Ansicht, Plan } from "../modell/typen";
 import type { Szene } from "../szene/typen";
 import { Dialog, kurzmeldung } from "./dialog";
@@ -14,7 +15,7 @@ export function PdfDialog({ dialogRef, plan, ansicht, szene }: { dialogRef: RefO
     setArbeitet(true);
     try {
       const blob = await pdfExport(szene, plan, ansicht.name, wahl);
-      herunterladen(blob, dateiname(plan, "pdf", ansicht.name));
+      herunterladen(blob, dateiname(plan, "pdf", `${ansicht.name}${seitStandGeaendert(plan) ? " Entwurf" : ""}`));
       dialogRef.current?.close();
     } catch (e) {
       kurzmeldung(`PDF fehlgeschlagen: ${(e as Error).message}`, "fehler");
@@ -77,7 +78,8 @@ export function PdfDialog({ dialogRef, plan, ansicht, szene }: { dialogRef: RefO
         <p className="hinweis">Ohne Einstufung. Ein Verschlusssachenvermerk (z. B. „VS – Nur für den Dienstgebrauch") lässt sich im Kopf des Plans eintragen.</p>
       )}
       <p className="hinweis">
-        Plan {Math.round(szene.breite)} × {Math.round(szene.hoehe)} mm. Seitenfuß mit Stand {plan.stand.dtg} und Version {plan.stand.version}. Linien, Text und Zeichen bleiben Vektor.
+        Plan {Math.round(szene.breite)} × {Math.round(szene.hoehe)} mm. Seitenfuß mit Stand {plan.stand.dtg} und Version {plan.stand.version}
+        {seitStandGeaendert(plan) ? ", dazu der Vermerk „ENTWURF: nach diesem Stand geändert“ mit Zeitpunkt" : ""}. Linien, Text und Zeichen bleiben Vektor.
       </p>
     </Dialog>
   );

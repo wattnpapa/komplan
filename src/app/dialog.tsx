@@ -57,6 +57,64 @@ export function bestaetigen(frage: string, ja = "Ja", nein = "Abbrechen"): Promi
   });
 }
 
+export interface Wahl<T extends string> {
+  wert: T;
+  text: string;
+  /** „gefahr" färbt den Knopf als Löschen. */
+  art?: "primaer" | "gefahr";
+}
+
+/**
+ * Rückfrage mit mehreren Antworten und immer einem „Abbrechen". Esc, Klick
+ * auf den Hintergrund und Enter (Fokus liegt auf „Abbrechen") ergeben
+ * `undefined`: Wer nicht ausdrücklich wählt, verändert nichts.
+ */
+export function auswaehlen<T extends string>(frage: string, wahlen: Wahl<T>[], abbrechen = "Abbrechen", erklaerung?: string): Promise<T | undefined> {
+  return new Promise((ok) => {
+    const d = document.createElement("dialog");
+    d.className = "dialog dialog-klein dialog-wahl";
+    d.innerHTML = `<div class="dialog-inhalt"><p class="frage"></p></div><div class="aktionen dialog-fuss"></div>`;
+    d.querySelector(".frage")!.textContent = frage;
+    if (erklaerung) {
+      const p = document.createElement("p");
+      p.className = "hinweis";
+      p.textContent = erklaerung;
+      d.querySelector(".dialog-inhalt")!.appendChild(p);
+    }
+    const fuss = d.querySelector(".dialog-fuss")!;
+    let ergebnis: T | undefined;
+    for (const w of wahlen) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = w.text;
+      if (w.art) b.className = w.art;
+      b.dataset.wahl = w.wert;
+      b.onclick = () => {
+        ergebnis = w.wert;
+        d.close();
+      };
+      fuss.appendChild(b);
+    }
+    const nein = document.createElement("button");
+    nein.type = "button";
+    nein.textContent = abbrechen;
+    nein.dataset.abbrechen = "";
+    nein.onclick = () => d.close();
+    fuss.appendChild(nein);
+    d.addEventListener("click", (e) => {
+      const r = d.getBoundingClientRect();
+      if (e.target === d && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) d.close();
+    });
+    d.onclose = () => {
+      d.remove();
+      ok(ergebnis);
+    };
+    document.body.appendChild(d);
+    d.showModal();
+    nein.focus();
+  });
+}
+
 /** Kurze Meldung unten am Rand, verschwindet von selbst. */
 export function kurzmeldung(text: string, art: "gut" | "fehler" = "gut"): void {
   const el = document.createElement("div");

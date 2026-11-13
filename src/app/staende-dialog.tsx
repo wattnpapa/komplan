@@ -3,7 +3,7 @@ import { szeneZuSvg } from "../ausgabe/svg";
 import { ansichtSzene } from "../layout/ansicht";
 import { jetzt, zeitpunktLesbar } from "../modell/dtg";
 import { planDuplizieren } from "../modell/plan";
-import { planVergleichen, standEinfrieren, standWeiterzaehlen, type Aenderung } from "../modell/stand";
+import { naechsterStand, planVergleichen, seitStandGeaendert, standEinfrieren, standWeiterzaehlen, type Aenderung } from "../modell/stand";
 import type { Plan, StandSchnappschuss } from "../modell/typen";
 import { planSpeichern, standSpeichern, staendeVon } from "../speicher/db";
 import { zeichenVorladen } from "../zeichen/katalog";
@@ -12,27 +12,52 @@ import { Dialog, kurzmeldung } from "./dialog";
 import type { PlanStore } from "./plan-store";
 
 /**
- * Stand-Verwaltung: neuen Stand anlegen (friert den bisherigen ein), frühere
- * Stände ansehen, mit dem aktuellen vergleichen oder als Kopie öffnen.
+ * Legt einen neuen Stand an: setzt den laufenden Plan auf die nächste freie
+ * Version mit dem aktuellen Zeitpunkt und friert genau diesen Inhalt ein. Ist
+ * der laufende Stand unverändert und noch nicht eingefroren, wird er selbst
+ * eingefroren (ohne neue Nummer). Gibt den eingefrorenen Stand zurück.
+ */
+export async function standAnlegen(store: PlanStore, bemerkung?: string): Promise<StandSchnappschuss> {
+  const zeit = jetzt();
+  const eingefroren = (await staendeVon(store.zustand.id)).map((s) => s.stand.version);
+  const schritt = naechsterStand(store.zustand, eingefroren);
+  if (schritt.weiterzaehlen) store.aendern((p) => standWeiterzaehlen(p as Plan, zeit, bemerkung, schritt.version));
+  else if (bemerkung) store.aendern((p) => void (p.stand.bemerkung = bemerkung));
+  const schnappschuss = standEinfrieren(store.zustand, zeit);
+  await standSpeichern(schnappschuss);
+  return schnappschuss;
+}
+
+/**
+ * Stand-Verwaltung: neuen Stand anlegen, frühere Stände ansehen, mit dem
+ * aktuellen vergleichen oder als Kopie öffnen.
  */
 export function StaendeDialog({ dialogRef, store, plan }: { dialogRef: RefObject<HTMLDialogElement | null>; store: PlanStore; plan: Plan }) {
   const [liste, setListe] = useState<StandSchnappschuss[]>([]);
   const [bemerkung, setBemerkung] = useState("");
   const [gewaehlt, setGewaehlt] = useState<StandSchnappschuss>();
   const [, setZeichen] = useState(0);
+  const [arbeitet, setArbeitet] = useState(false);
 
   const laden = () => void staendeVon(plan.id).then(setListe);
-  useEffect(laden, [plan.id]);
+  useEffect(laden, [plan.id, plan.stand]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const anlegen = async () => {
-    const zeit = jetzt();
-    const schnappschuss = standEinfrieren(store.zustand, zeit);
-    await standSpeichern(schnappschuss);
-    store.aendern((p) => standWeiterzaehlen(p as Plan, zeit, bemerkung.trim() || undefined));
-    setBemerkung("");
-    laden();
-    kurzmeldung(`Stand ${schnappschuss.stand.version} eingefroren, weiter mit Version ${schnappschuss.stand.version + 1}.`);
+    if (arbeitet) return;
+    setArbeitet(true);
+    try {
+      const s = await standAnlegen(store, bemerkung.trim() || undefined);
+      setBemerkung("");
+      laden();
+      kurzmeldung(`Stand ${s.stand.dtg}, Version ${s.stand.version} festgehalten.`);
+    } catch (e) {
+      kurzmeldung(`Stand ließ sich nicht anlegen: ${(e as Error).message}`, "fehler");
+    } finally {
+      setArbeitet(false);
+    }
   };
+  const geaendert = seitStandGeaendert(plan);
+  const neueVersion = naechsterStand(plan, liste.map((s) => s.stand.version));
 
   const ansehen = async (s: StandSchnappschuss) => {
     await zeichenVorladen(Object.values(s.plan.stellen).map((x) => x.zeichen));
@@ -59,7 +84,8 @@ export function StaendeDialog({ dialogRef, store, plan }: { dialogRef: RefObject
     <Dialog titel="Stände" dialogRef={dialogRef} klasse="dialog-breit" onSchliessen={() => setGewaehlt(undefined)}>
       <p>
         Aktueller Stand: <strong className="daten">{plan.stand.dtg}</strong> ({zeitpunktLesbar(plan.stand.zeitpunkt)}), Version {plan.stand.version}
-        {plan.stand.bemerkung ? `, ${plan.stand.bemerkung}` : ""}.
+        {plan.stand.bemerkung ? `, ${plan.stand.bemerkung}` : ""}.{" "}
+        {geaendert ? <strong className="warnung">Seit diesem Stand geändert: Ausdrucke tragen sonst Stand und Version, die den Inhalt nicht belegen.</strong> : "Seitdem unverändert."}
       </p>
       <div className="zeile">
         <label className="feld">
@@ -68,9 +94,15 @@ export function StaendeDialog({ dialogRef, store, plan }: { dialogRef: RefObject
         </label>
       </div>
       <div className="aktionen">
-        <button type="button" className="primaer" onClick={() => void anlegen()}>Neuen Stand anlegen</button>
+        <button type="button" className="primaer" disabled={arbeitet} onClick={() => void anlegen()}>
+          {neueVersion.weiterzaehlen ? `Neuen Stand anlegen (Version ${neueVersion.version})` : `Stand Version ${plan.stand.version} festhalten`}
+        </button>
       </div>
-      <p className="hinweis">Friert den Plan in seiner jetzigen Form als Version {plan.stand.version} ein. Danach geht es mit Version {plan.stand.version + 1} und dem aktuellen Zeitpunkt weiter.</p>
+      <p className="hinweis">
+        {neueVersion.weiterzaehlen
+          ? `Setzt den Plan auf Version ${neueVersion.version} mit dem aktuellen Zeitpunkt als Stand-DTG und hält genau diesen Inhalt fest. Ausdrucke von jetzt an tragen Version ${neueVersion.version}.`
+          : `Hält den Plan in seiner jetzigen Form als Version ${plan.stand.version} fest, ohne neue Nummer.`}
+      </p>
 
       <h3>Frühere Stände ({liste.length})</h3>
       {liste.length === 0 ? (

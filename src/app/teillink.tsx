@@ -4,6 +4,7 @@ import { neueId } from "../modell/id";
 import { jetzt } from "../modell/dtg";
 import type { Plan } from "../modell/typen";
 import { planLaden, planSpeichern } from "../speicher/db";
+import { standInhaltFesthalten } from "../modell/stand";
 import { planOeffnen } from "./app";
 import { Dialog, kurzmeldung } from "./dialog";
 
@@ -84,7 +85,8 @@ export function LinkImport({ daten }: { daten: string }) {
 
   const uebernehmen = async () => {
     if (!plan) return;
-    const kopie: Plan = { ...plan, geaendert: jetzt() };
+    const kopie: Plan = { ...plan, geaendert: jetzt(), stand: { ...plan.stand } };
+    if (kopie.stand.inhalt === undefined) standInhaltFesthalten(kopie);
     if (await planLaden(kopie.id)) {
       kopie.id = neueId();
       kopie.name = `${kopie.name} (aus Link)`;

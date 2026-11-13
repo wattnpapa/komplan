@@ -4,7 +4,9 @@
  * auf Rechnern ohne Roboto Slab gleich aussieht.
  */
 
+import { dtgAusZeitpunkt, jetzt } from "../modell/dtg";
 import { dateiSchreiben } from "../modell/migration";
+import { seitStandGeaendert } from "../modell/stand";
 import type { Plan, StandSchnappschuss } from "../modell/typen";
 import type { Szene } from "../szene/typen";
 import { szeneZuSvg } from "./svg";
@@ -126,7 +128,7 @@ export async function pdfExport(szene: Szene, plan: Plan, ansichtName: string, w
     format: wahl.format,
     ausrichtung: wahl.ausrichtung,
     grosseFlaeche: wahl.grosseFlaeche,
-    fuss: { titel: `${plan.name} – ${ansichtName}`, dtg: plan.stand.dtg, version: plan.stand.version },
+    fuss: { titel: `${plan.name} – ${ansichtName}`, dtg: plan.stand.dtg, version: plan.stand.version, zusatz: seitStandGeaendert(plan) ? `ENTWURF: nach diesem Stand geändert, erstellt ${dtgAusZeitpunkt(jetzt())}` : undefined },
     einstufung: plan.kopf.einstufung ? { text: plan.kopf.einstufung, position: wahl.einstufungPosition } : undefined,
     zeichenSchriftTtf: ttf || undefined,
   });

@@ -26,6 +26,7 @@ test("Kontakte eingeben, Kommunikationsplan, PDF und Stände", async ({ page }) 
   // PDF
   await page.getByRole("button", { name: "Export ▾" }).click();
   await page.getByRole("menuitem", { name: "PDF…" }).click();
+  await page.getByRole("button", { name: "Als Entwurf ausgeben" }).click();
   await page.getByLabel("A4").check();
   const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "PDF herunterladen" }).click()]);
   const bytes = await readFile((await pdf.path())!);
@@ -37,7 +38,8 @@ test("Kontakte eingeben, Kommunikationsplan, PDF und Stände", async ({ page }) 
   await page.getByLabel(/Bemerkung/).fill("Lagewechsel");
   await page.getByRole("button", { name: "Neuen Stand anlegen" }).click();
   await expect(page.getByRole("button", { name: /^Stand .*V2/ })).toBeVisible();
-  await expect(page.locator(".planliste").getByText(/Version 1/)).toBeVisible();
+  // Version 1 wurde beim PDF als Entwurf ausgegeben, eingefroren wird der Inhalt von Version 2
+  await expect(page.locator(".planliste").getByText(/Version 2/)).toBeVisible();
   await page.keyboard.press("Escape");
   await page.locator(".gliederung .gl-zeile").first().click();
   await page.getByLabel("Funkrufname", { exact: true }).fill("Heros Muster 1");

@@ -40,7 +40,7 @@ test("Formularansichten und PowerPoint-Export", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /UEAL 1/ })).toBeVisible();
 
   await page.getByRole("button", { name: "Export ▾" }).click();
-  const [pptx] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "PowerPoint (bearbeitbar)" }).click()]);
+  const [pptx] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "PowerPoint (bearbeitbar)" }).click().then(() => page.getByRole("button", { name: "Als Entwurf ausgeben" }).click())]);
   const bytes = await readFile((await pptx.path())!);
   expect(bytes.subarray(0, 2).toString()).toBe("PK");
   expect(pptx.suggestedFilename()).toMatch(/\.pptx$/);

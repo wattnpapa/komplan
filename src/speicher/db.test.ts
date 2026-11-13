@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { describe, expect, it } from "vitest";
 import { neuerPlan } from "../modell/plan";
-import { papierkorbAufraeumen, planEndgueltigLoeschen, planLaden, planListe, planSpeichern, standSpeichern, staendeVon, wertLesen, wertSchreiben } from "./db";
+import { papierkorbAufraeumen, planEndgueltigLoeschen, planLaden, planLadenMitRev, planListe, planSpeichern, planSpeichernWenn, standSpeichern, staendeVon, wertLesen, wertSchreiben } from "./db";
 
 describe("IndexedDB-Ablage", () => {
   it("speichert, listet und löscht Pläne samt Ständen", async () => {
@@ -26,6 +26,22 @@ describe("IndexedDB-Ablage", () => {
     expect(await papierkorbAufraeumen(new Date("2026-11-13T12:00:00"))).toBe(1);
     expect(await planLaden(alt.id)).toBeUndefined();
     expect(await planLaden(neu.id)).toBeDefined();
+  });
+
+  it("überschreibt keine Fassung, die ein anderer Tab inzwischen gespeichert hat", async () => {
+    const p = neuerPlan({ name: "Tab", zeit: "2026-11-13T10:00" });
+    const start = await planSpeichern(p);
+    // Tab A und Tab B gehen beide von `start` aus
+    const a = await planSpeichernWenn({ ...p, name: "Tab A" }, start);
+    expect(a.ok).toBe(true);
+    const b = await planSpeichernWenn({ ...p, name: "Tab B" }, start);
+    expect(b.ok).toBe(false);
+    expect((await planLaden(p.id))?.name).toBe("Tab A");
+    // Tab B lädt neu und speichert von der aktuellen Revision aus
+    const neu = await planLadenMitRev(p.id);
+    expect(neu?.rev).toBe(a.ok ? a.rev : "");
+    expect((await planSpeichernWenn({ ...p, name: "Tab B" }, neu?.rev)).ok).toBe(true);
+    expect((await planLaden(p.id))?.name).toBe("Tab B");
   });
 
   it("merkt sich Werte", async () => {

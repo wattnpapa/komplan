@@ -40,7 +40,7 @@ test("Plan anlegen, bearbeiten, exportieren und wieder einlesen", async ({ page 
 
   // SVG-Export
   await page.getByRole("button", { name: "Export ▾" }).click();
-  const [svgDownload] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "SVG (Vektor)" }).click()]);
+  const [svgDownload] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "SVG (Vektor)" }).click().then(() => page.getByRole("button", { name: "Als Entwurf ausgeben" }).click())]);
   const svg = await readFile((await svgDownload.path())!, "utf8");
   expect(svg).toContain("<svg");
   expect(svg).toContain(">Süd</text>");
@@ -48,7 +48,7 @@ test("Plan anlegen, bearbeiten, exportieren und wieder einlesen", async ({ page 
 
   // PNG-Export
   await page.getByRole("button", { name: "Export ▾" }).click();
-  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "PNG, weißer Hintergrund" }).click()]);
+  const [png] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: "PNG, weißer Hintergrund" }).click().then(() => page.getByRole("button", { name: "Als Entwurf ausgeben" }).click())]);
   expect((await readFile((await png.path())!)).subarray(1, 4).toString()).toBe("PNG");
 
   // JSON-Export und Wiedereinlesen

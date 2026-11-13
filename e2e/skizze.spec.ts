@@ -66,6 +66,7 @@ test("Skizze: platzieren, verschieben, verbinden, rückgängig, PDF", async ({ p
   // PDF
   await page.getByRole("button", { name: "Export ▾" }).click();
   await page.getByRole("menuitem", { name: "PDF…" }).click();
+  await page.getByRole("button", { name: "Als Entwurf ausgeben" }).click();
   const [pdf] = await Promise.all([page.waitForEvent("download"), page.getByRole("button", { name: "PDF herunterladen" }).click()]);
   expect((await readFile((await pdf.path())!)).subarray(0, 5).toString()).toBe("%PDF-");
 });

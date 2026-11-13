@@ -5,10 +5,15 @@ import { elternVon } from "../modell/baum";
 import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, type Ziel } from "../modell/plan";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan } from "../modell/typen";
 import { planPruefen } from "../modell/validierung";
-import { planLaden, planSpeichern, staendeVon } from "../speicher/db";
+import { planAenderungenHoeren, planLadenMitRev, planSpeichern, planSpeichernWenn, staendeVon } from "../speicher/db";
+import { planMigrieren } from "../modell/migration";
+import { planDuplizieren } from "../modell/plan";
+import { inhaltsSchluessel, seitStandGeaendert } from "../modell/stand";
+import { dtgAusZeitpunkt, jetzt } from "../modell/dtg";
+import { notsicherungLesen, notsicherungLoeschen, notsicherungSchreiben } from "./notsicherung";
 import { zeichenVorladen } from "../zeichen/katalog";
 import { planOeffnen } from "./app";
-import { bestaetigen, kurzmeldung } from "./dialog";
+import { auswaehlen, bestaetigen, kurzmeldung } from "./dialog";
 import { PlanEigenschaften, StelleEigenschaften } from "./eigenschaften";
 import { Gliederung, stelleTitel } from "./gliederung";
 import { PlanStore } from "./plan-store";
@@ -20,23 +25,62 @@ import { SkizzenAnsichtEigenschaften, SkizzenElementEigenschaften } from "./skiz
 import { ansichtSzene } from "../layout/ansicht";
 import { SKIZZEN_VORLAGEN, skizzeAusStelle, skizzeAusVorlage, type SkizzenVorlage } from "../modell/skizze";
 import type { SkizzenAnsicht } from "../modell/typen";
-import { StaendeDialog } from "./staende-dialog";
+import { StaendeDialog, standAnlegen } from "./staende-dialog";
 import { TeillinkDialog } from "./teillink";
 
 type BaumAnsicht = FuehrungsorgAnsicht | KomplanAnsicht;
 const SPEICHER_VERZUG = 800;
+/** Spätestens so lange nach der ersten ungespeicherten Änderung wird gespeichert, auch beim Weitertippen. */
+const SPEICHER_HOECHSTENS = 2500;
+
+interface Geladen {
+  store: PlanStore;
+  rev: string | undefined;
+  /** Der geladene Stand weicht von der Ablage ab (Notsicherung, Prüfwert nachgetragen). */
+  ungespeichert: boolean;
+  /** Die Notsicherung beruht auf einer älteren Fassung als der gespeicherten. */
+  konflikt: boolean;
+}
 
 export function Editor({ planId }: { planId: Id }) {
-  const [store, setStore] = useState<PlanStore>();
+  const [geladen, setGeladen] = useState<Geladen>();
   const [fehler, setFehler] = useState<string>();
 
   useEffect(() => {
     let aktiv = true;
-    planLaden(planId)
-      .then((p) => {
+    planLadenMitRev(planId)
+      .then((r) => {
         if (!aktiv) return;
-        if (!p) setFehler("Diesen Plan gibt es auf diesem Gerät nicht (mehr).");
-        else setStore(new PlanStore(p));
+        if (!r) {
+          notsicherungLoeschen(planId);
+          return setFehler("Diesen Plan gibt es auf diesem Gerät nicht (mehr).");
+        }
+        let plan = r.plan;
+        let ungespeichert = false;
+        let konflikt = false;
+        // Notsicherung vom letzten Verlassen der Seite übernehmen
+        const not = notsicherungLesen(planId);
+        if (not) {
+          let gesichert: Plan | undefined;
+          try {
+            gesichert = planMigrieren(not.plan);
+          } catch {
+            gesichert = undefined;
+          }
+          if (!gesichert || JSON.stringify(gesichert) === JSON.stringify(plan)) notsicherungLoeschen(planId);
+          else {
+            plan = gesichert;
+            ungespeichert = true;
+            konflikt = not.basisRev !== r.rev;
+            if (!konflikt) kurzmeldung("Die letzten Eingaben vor dem Neuladen wurden wiederhergestellt.");
+          }
+        }
+        // Ältere Pläne: Inhalt beim ersten Öffnen als Inhalt des laufenden Stands festhalten
+        if (plan.stand.inhalt === undefined) {
+          plan = { ...plan, stand: { ...plan.stand, inhalt: inhaltsSchluessel(plan) } };
+          ungespeichert = true;
+        }
+        setGeladen({ store: new PlanStore(plan), rev: r.rev, ungespeichert, konflikt });
       })
       .catch((e: Error) => aktiv && setFehler(`Der Plan ließ sich nicht laden: ${e.message}`));
     return () => {
@@ -52,20 +96,27 @@ export function Editor({ planId }: { planId: Id }) {
       </div>
     );
   }
-  if (!store) return <p className="nebentext">Lade Plan …</p>;
-  return <EditorGeladen store={store} />;
+  if (!geladen) return <p className="nebentext">Lade Plan …</p>;
+  return <EditorGeladen {...geladen} />;
 }
 
-function EditorGeladen({ store }: { store: PlanStore }) {
+function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKonflikt }: Geladen) {
   const plan = useSyncExternalStore(store.abonnieren, store.holen);
   const [auswahl, setAuswahl] = useState<Id[]>([]);
   const [zugeklappt, setZugeklappt] = useState<Set<Id>>(new Set());
   const [zoom, setZoom] = useState(1);
   const [zeichenBereit, setZeichenBereit] = useState(0);
-  const [speicherStand, setSpeicherStand] = useState<"gespeichert" | "ungespeichert" | "fehler">("gespeichert");
+  const [speicherStand, setSpeicherStand] = useState<"gespeichert" | "ungespeichert" | "fehler" | "konflikt">(startKonflikt ? "konflikt" : ungespeichert ? "ungespeichert" : "gespeichert");
   const [exportOffen, setExportOffen] = useState(false);
   const [kontext, setKontext] = useState<{ id: Id; x: number; y: number }>();
-  const gespeicherteVersion = useRef(store.version);
+  const gespeicherteVersion = useRef(ungespeichert ? -1 : store.version);
+  /** Revision der Ablage, von der dieser Tab ausgeht. */
+  const rev = useRef(startRev);
+  const [konflikt, setKonflikt] = useState(startKonflikt);
+  const konfliktRef = useRef(startKonflikt);
+  const kette = useRef<Promise<void>>(Promise.resolve());
+  const ersteUngespeichert = useRef<number | undefined>(undefined);
+  const [druckZeit, setDruckZeit] = useState(jetzt());
 
   const [ansichtId, setAnsichtId] = useState<Id>();
   const pdfDialog = useRef<HTMLDialogElement>(null);
@@ -153,33 +204,106 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const hinweise = alleHinweise.filter((h) => h.stufe !== "info");
   const [hinweiseOffen, setHinweiseOffen] = useState(false);
 
-  // Autosave
+  const konfliktSetzen = useCallback((k: boolean) => {
+    konfliktRef.current = k;
+    setKonflikt(k);
+    if (k) setSpeicherStand("konflikt");
+  }, []);
+
+  /**
+   * Speichert nacheinander (nie zwei Schreibvorgänge gleichzeitig) und nur,
+   * wenn kein anderer Tab den Plan inzwischen geändert hat.
+   */
+  const speichern = useCallback((): Promise<void> => {
+    kette.current = kette.current.then(async () => {
+      const v = store.version;
+      if (v === gespeicherteVersion.current || konfliktRef.current) return;
+      try {
+        const r = await planSpeichernWenn(store.zustand, rev.current);
+        if (!r.ok) return konfliktSetzen(true);
+        rev.current = r.rev;
+        gespeicherteVersion.current = v;
+        notsicherungLoeschen(store.zustand.id);
+        if (store.version === v) {
+          ersteUngespeichert.current = undefined;
+          setSpeicherStand("gespeichert");
+        } else setSpeicherStand("ungespeichert");
+      } catch {
+        setSpeicherStand("fehler");
+      }
+    });
+    return kette.current;
+  }, [store, konfliktSetzen]);
+
+  // Autosave: kurz nach der letzten Änderung, beim Weitertippen spätestens nach SPEICHER_HOECHSTENS
   useEffect(() => {
-    if (store.version === gespeicherteVersion.current) return;
+    if (store.version === gespeicherteVersion.current || konfliktRef.current) return;
     setSpeicherStand("ungespeichert");
-    const v = store.version;
-    const t = setTimeout(() => {
-      planSpeichern(store.zustand)
-        .then(() => {
-          gespeicherteVersion.current = v;
-          setSpeicherStand(store.version === v ? "gespeichert" : "ungespeichert");
-        })
-        .catch(() => setSpeicherStand("fehler"));
-    }, SPEICHER_VERZUG);
+    ersteUngespeichert.current ??= Date.now();
+    const rest = SPEICHER_HOECHSTENS - (Date.now() - ersteUngespeichert.current);
+    const t = setTimeout(() => void speichern(), Math.max(0, Math.min(SPEICHER_VERZUG, rest)));
     return () => clearTimeout(t);
-  }, [plan, store]);
+  }, [plan, store, speichern]);
+
+  // Beim Verlassen: synchron sichern (übersteht F5), dann asynchron speichern
   useEffect(() => {
     const sofort = () => {
-      if (store.version !== gespeicherteVersion.current) void planSpeichern(store.zustand);
+      if (store.version === gespeicherteVersion.current) return;
+      notsicherungSchreiben(store.zustand, rev.current);
+      void speichern();
     };
+    const verborgen = () => document.visibilityState === "hidden" && sofort();
     addEventListener("pagehide", sofort);
-    document.addEventListener("visibilitychange", sofort);
+    addEventListener("beforeunload", sofort);
+    document.addEventListener("visibilitychange", verborgen);
     return () => {
       sofort();
       removeEventListener("pagehide", sofort);
-      document.removeEventListener("visibilitychange", sofort);
+      removeEventListener("beforeunload", sofort);
+      document.removeEventListener("visibilitychange", verborgen);
     };
-  }, [store]);
+  }, [store, speichern]);
+
+  const andereFassungLaden = useCallback(async (meldung?: string) => {
+    const r = await planLadenMitRev(store.zustand.id);
+    if (!r) {
+      kurzmeldung("Der Plan wurde in einem anderen Fenster gelöscht. Die Fassung hier bleibt offen, bis du sie schließt.", "fehler");
+      return;
+    }
+    store.ersetzen(r.plan);
+    rev.current = r.rev;
+    gespeicherteVersion.current = store.version;
+    ersteUngespeichert.current = undefined;
+    notsicherungLoeschen(r.plan.id);
+    konfliktSetzen(false);
+    setSpeicherStand("gespeichert");
+    if (meldung) kurzmeldung(meldung);
+  }, [store, konfliktSetzen]);
+
+  // Andere Tabs: ohne eigene ungespeicherte Änderungen still nachladen, sonst Konflikt anzeigen
+  useEffect(
+    () =>
+      planAenderungenHoeren((m) => {
+        if (m.planId !== store.zustand.id || m.rev === rev.current) return;
+        if (store.version === gespeicherteVersion.current && !konfliktRef.current) void andereFassungLaden("Der Plan wurde in einem anderen Fenster geändert und neu geladen.");
+        else konfliktSetzen(true);
+      }),
+    [store, andereFassungLaden, konfliktSetzen],
+  );
+
+  const konfliktUeberschreiben = async () => {
+    const r = await planLadenMitRev(store.zustand.id);
+    rev.current = r?.rev;
+    konfliktSetzen(false);
+    gespeicherteVersion.current = -1;
+    await speichern();
+    kurzmeldung("Fassung aus diesem Fenster gespeichert.");
+  };
+  const konfliktAlsKopie = async () => {
+    const kopie = planDuplizieren(store.zustand, `${store.zustand.name} (Fassung aus anderem Fenster)`);
+    await planSpeichern(kopie);
+    await andereFassungLaden(`Deine Fassung liegt als Kopie „${kopie.name}" in der Planliste.`);
+  };
 
   // Auswahl bereinigen, wenn Stellen verschwinden (Undo, Löschen)
   useEffect(() => {
@@ -218,8 +342,20 @@ function EditorGeladen({ store }: { store: PlanStore }) {
     if (!s) return;
     let mitTeilbaum = false;
     if (s.kinder.length) {
-      const antwort = await bestaetigen(`„${stelleTitel(s)}" hat ${s.kinder.length} unterstellte Stellen. Mit allen unterstellten Stellen löschen? „Nur diese" rückt die Unterstellten eine Ebene nach oben.`, "Mit Unterstellten löschen", "Nur diese");
-      mitTeilbaum = antwort;
+      const zaehlen = (x: Id): number => (store.zustand.stellen[x]?.kinder ?? []).reduce((n, k) => n + 1 + zaehlen(k), 0);
+      const alle = zaehlen(id);
+      const direkt = s.kinder.length;
+      const antwort = await auswaehlen(
+        `„${stelleTitel(s)}" hat ${alle === direkt ? `${alle} unterstellte Stelle${alle > 1 ? "n" : ""}` : `${alle} unterstellte Stellen (${direkt} direkt)`}. Was soll gelöscht werden?`,
+        [
+          { wert: "alle", text: `Mit allen ${alle} Unterstellten löschen`, art: "gefahr" },
+          { wert: "nur", text: "Nur diese Stelle (Unterstellte rücken hoch)" },
+        ],
+        "Abbrechen",
+        "Esc oder Enter bricht ab. Rückgängig mit Strg+Z.",
+      );
+      if (!antwort) return;
+      mitTeilbaum = antwort === "alle";
     }
     aendern((p) => void stelleLoeschen(p as Plan, id, mitTeilbaum));
     kurzmeldung("Gelöscht. Strg+Z macht es rückgängig.");
@@ -308,13 +444,72 @@ function EditorGeladen({ store }: { store: PlanStore }) {
     return () => removeEventListener("keydown", f);
   });
 
+  const entwurf = useMemo(() => seitStandGeaendert(plan), [plan]);
+
+  /**
+   * Vor Ausgaben aufs Papier oder als Bild: Ist der Plan seit seinem Stand
+   * geändert, belegen Stand und Version den Inhalt nicht. Dann neuen Stand
+   * anbieten. Gibt `false` zurück, wenn abgebrochen wurde.
+   */
+  const ausgabeVorbereiten = async (): Promise<boolean> => {
+    if (!seitStandGeaendert(store.zustand)) {
+      // Was unter dieser Version ausgegeben wird, als Stand festhalten (einmal je Version)
+      try {
+        const v = store.zustand.stand.version;
+        if (!(await staendeVon(store.zustand.id)).some((s) => s.stand.version === v)) await standAnlegen(store);
+      } catch {
+        // Ausgabe nicht am Festhalten scheitern lassen
+      }
+      return true;
+    }
+    const p = store.zustand;
+    const wahl = await auswaehlen(
+      `Der Plan wurde seit Stand ${p.stand.dtg} (Version ${p.stand.version}) geändert.`,
+      [
+        { wert: "stand", text: "Neuen Stand anlegen und ausgeben", art: "primaer" },
+        { wert: "entwurf", text: "Als Entwurf ausgeben" },
+      ],
+      "Abbrechen",
+      "Ohne neuen Stand trügen zwei Ausdrucke mit verschiedenem Inhalt denselben Stand und dieselbe Version. Als Entwurf steht das auf jedem Blatt mit Zeitpunkt der Ausgabe.",
+    );
+    if (!wahl) return false;
+    if (wahl === "stand") {
+      try {
+        const s = await standAnlegen(store);
+        kurzmeldung(`Neuer Stand ${s.stand.dtg}, Version ${s.stand.version}.`);
+      } catch (e) {
+        kurzmeldung(`Stand ließ sich nicht anlegen: ${(e as Error).message}`, "fehler");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const drucken = async () => {
+    setExportOffen(false);
+    if (!(await ausgabeVorbereiten())) return;
+    setDruckZeit(jetzt());
+    setTimeout(() => print(), 50);
+  };
+  useEffect(() => {
+    const vorDruck = () => setDruckZeit(jetzt());
+    addEventListener("beforeprint", vorDruck);
+    return () => removeEventListener("beforeprint", vorDruck);
+  }, []);
+
   const exportieren = async (art: "svg" | "png" | "png-transparent" | "json" | "pptx") => {
     setExportOffen(false);
+    if (art !== "json" && !(await ausgabeVorbereiten())) return;
     try {
-      if (art === "pptx") herunterladen(await pptxExport(szene, `${plan.name} – ${aktiveAnsicht.name}`), dateiname(plan, "pptx", aktiveAnsicht.name));
-      else if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg", aktiveAnsicht.name));
-      else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(szene, 3, art === "png" ? "#ffffff" : undefined), dateiname(plan, "png", aktiveAnsicht.name));
-      else herunterladen(jsonExport(plan, await staendeVon(plan.id)), dateiname(plan, "json"));
+      // Nach „Neuen Stand anlegen" gilt der neue Plan, nicht der aus diesem Render
+      const p = store.zustand;
+      const a = p.ansichten[aktiveAnsicht.id] ?? aktiveAnsicht;
+      const sz = p === plan ? szene : ansichtSzene(p, a);
+      const zusatz = `${a.name}${seitStandGeaendert(p) ? " Entwurf" : ""}`;
+      if (art === "pptx") herunterladen(await pptxExport(sz, `${p.name} – ${a.name}`), dateiname(p, "pptx", zusatz));
+      else if (art === "svg") herunterladen(new Blob([await svgExport(sz, "#ffffff")], { type: "image/svg+xml" }), dateiname(p, "svg", zusatz));
+      else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(sz, 3, art === "png" ? "#ffffff" : undefined), dateiname(p, "png", zusatz));
+      else herunterladen(jsonExport(p, await staendeVon(p.id)), dateiname(p, "json"));
       return;
     } catch (e) {
       kurzmeldung(`Export fehlgeschlagen: ${(e as Error).message}`, "fehler");
@@ -339,13 +534,25 @@ function EditorGeladen({ store }: { store: PlanStore }) {
 
   return (
     <div className="editor">
+      {konflikt && (
+        <div className="konflikt-band" role="alert">
+          <p>
+            <strong>Dieser Plan wurde in einem anderen Fenster oder Tab geändert.</strong> Die Änderungen hier sind noch nicht gespeichert und würden die andere Fassung überschreiben. Was soll gelten?
+          </p>
+          <div className="aktionen">
+            <button type="button" className="primaer" onClick={() => void konfliktAlsKopie()}>Meine Fassung als Kopie sichern, andere laden</button>
+            <button type="button" onClick={() => void andereFassungLaden("Andere Fassung geladen. Die Änderungen aus diesem Fenster sind verworfen.")}>Andere Fassung laden (meine verwerfen)</button>
+            <button type="button" className="gefahr" onClick={() => void konfliktUeberschreiben()}>Meine Fassung speichern (andere überschreiben)</button>
+          </div>
+        </div>
+      )}
       <div className="werkzeugleiste" role="toolbar" aria-label="Werkzeuge">
         <button type="button" onClick={() => planOeffnen(undefined)} title="Zur Planliste">
           ← Pläne
         </button>
         <input className="plan-name" aria-label="Name des Plans" value={plan.name} onChange={(e) => aendern((p) => void (p.name = e.target.value), "name")} />
         <span className={`speicher-stand ${speicherStand}`} role="status">
-          {speicherStand === "gespeichert" ? "✓ gespeichert" : speicherStand === "fehler" ? "Speichern fehlgeschlagen" : "speichert …"}
+          {speicherStand === "gespeichert" ? "✓ gespeichert" : speicherStand === "fehler" ? "Speichern fehlgeschlagen" : speicherStand === "konflikt" ? "nicht gespeichert: Konflikt" : "speichert …"}
         </span>
         <span className="trenner" />
         <button type="button" onClick={() => store.rueckgaengig()} disabled={!store.kannRueckgaengig()} title="Rückgängig (Strg+Z)">
@@ -380,19 +587,25 @@ function EditorGeladen({ store }: { store: PlanStore }) {
           </button>
           {exportOffen && (
             <div className="menue-liste" role="menu">
-              <button role="menuitem" type="button" onClick={() => (setExportOffen(false), pdfDialog.current?.showModal())}>PDF…</button>
+              <button role="menuitem" type="button" onClick={() => void (async () => (setExportOffen(false), (await ausgabeVorbereiten()) && pdfDialog.current?.showModal()))()}>PDF…</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("pptx")}>PowerPoint (bearbeitbar)</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("svg")}>SVG (Vektor)</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("png")}>PNG, weißer Hintergrund</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("png-transparent")}>PNG, transparent</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("json")}>JSON (zum Weiterbearbeiten)</button>
               <button role="menuitem" type="button" onClick={() => (setExportOffen(false), linkDialog.current?.showModal())}>Als Link teilen…</button>
-              <button role="menuitem" type="button" onClick={() => (setExportOffen(false), setTimeout(() => print(), 50))}>Drucken</button>
+              <button role="menuitem" type="button" onClick={() => void drucken()}>Drucken</button>
             </div>
           )}
         </div>
-        <button type="button" onClick={() => staendeDialog.current?.showModal()} title="Stand anlegen, frühere Stände ansehen und vergleichen">
+        <button
+          type="button"
+          className={`stand-knopf ${entwurf ? "geaendert" : ""}`}
+          onClick={() => staendeDialog.current?.showModal()}
+          title={entwurf ? "Seit diesem Stand geändert. Neuen Stand anlegen, damit Stand und Version auf dem Papier den Inhalt belegen." : "Stand anlegen, frühere Stände ansehen und vergleichen"}
+        >
           Stand <span className="daten">{plan.stand.dtg}</span> · V{plan.stand.version}
+          {entwurf && " · geändert"}
         </button>
         <span className="menue">
           <button
@@ -481,6 +694,15 @@ function EditorGeladen({ store }: { store: PlanStore }) {
           </p>
         </aside>
         <section className="spalte-mitte">
+          {plan.kopf.einstufung && <div className="druck-kopf" aria-hidden="true">{plan.kopf.einstufung}</div>}
+          <div className="druck-fuss" aria-hidden="true">
+            <span>
+              {plan.name} – {aktiveAnsicht.name} · Stand {plan.stand.dtg} · Version {plan.stand.version}
+              {entwurf && <span className="druck-entwurf"> · ENTWURF: nach diesem Stand geändert, gedruckt {dtgAusZeitpunkt(druckZeit)}</span>}
+              {plan.kopf.einstufung && ` · ${plan.kopf.einstufung}`}
+            </span>
+            <span>komplan.app</span>
+          </div>
           {skizze ? (
             <div className="skizzen-bereich">
               <SkizzenWerkzeuge plan={plan} ansicht={skizze} aendern={aendern} auswahl={skAuswahl} setAuswahl={setSkAuswahl} platzierer={platzierer} setPlatzierer={setPlatzierer} verbinderFarbe={verbinderFarbe} setVerbinderFarbe={setVerbinderFarbe} />

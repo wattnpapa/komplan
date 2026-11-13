@@ -5,6 +5,7 @@ import { neueId } from "../modell/id";
 import { planDuplizieren } from "../modell/plan";
 import { VORLAGEN } from "../modell/vorlagen";
 import { dauerhaftAnfragen, papierkorbAufraeumen, PAPIERKORB_TAGE, planEndgueltigLoeschen, planLaden, planListe, planSpeichern, standSpeichern, type PlanKurz } from "../speicher/db";
+import { standInhaltFesthalten } from "../modell/stand";
 import { planOeffnen } from "./app";
 import { bestaetigen, Dialog, kurzmeldung } from "./dialog";
 
@@ -31,6 +32,7 @@ export function Start() {
   const anlegen = async (vorlageId: string) => {
     const v = VORLAGEN.find((x) => x.id === vorlageId)!;
     const plan = v.erzeugen(jetzt());
+    standInhaltFesthalten(plan);
     await planSpeichern(plan);
     void dauerhaftAnfragen();
     neuDialog.current?.close();
@@ -46,6 +48,7 @@ export function Start() {
         plan.name = `${plan.name} (eingelesen)`;
         for (const s of staende) s.planId = plan.id;
       }
+      if (plan.stand.inhalt === undefined) standInhaltFesthalten(plan);
       await planSpeichern(plan);
       for (const s of staende) await standSpeichern({ ...s, planId: plan.id });
       kurzmeldung(`„${plan.name}" eingelesen.`);

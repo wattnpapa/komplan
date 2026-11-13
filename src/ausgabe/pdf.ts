@@ -19,7 +19,8 @@ export interface PdfOptionen {
   ausrichtung: "quer" | "hoch";
   grosseFlaeche: "einpassen" | "teilen";
   /** Seitenfuß links. */
-  fuss: { titel: string; dtg: string; version: number };
+  /** `zusatz`: zweite Fußzeile, fett (z. B. Entwurfsvermerk). */
+  fuss: { titel: string; dtg: string; version: number; zusatz?: string };
   /** Verschlusssachenvermerk oben und/oder unten mittig. */
   einstufung?: { text: string; position: "kopf" | "kopf-und-fuss" };
   /** Roboto Slab als TTF (base64). Ohne sie fällt der Zeichentext auf Helvetica zurück. */
@@ -211,6 +212,11 @@ export async function pdfErzeugen(szene: Szene, o: PdfOptionen): Promise<Blob> {
     const fussY = seiteH - RAND + 1;
     pdf.text(pdfText(`${o.fuss.titel} · Stand ${o.fuss.dtg} · Version ${o.fuss.version}${seite.marke ? ` · ${seite.marke}` : ""}`), RAND, fussY);
     pdf.text(`Seite ${i + 1} von ${seiten.length} · komplan.app`, seiteB - RAND, fussY, { align: "right" });
+    if (o.fuss.zusatz) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(pdfText(o.fuss.zusatz), RAND, fussY + 3);
+    }
     if (o.einstufung?.text) {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);

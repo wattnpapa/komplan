@@ -1,7 +1,10 @@
 /**
- * Stand-Verwaltung: „Neuen Stand anlegen" friert den bisherigen Plan als
- * Schnappschuss ein und hebt den laufenden Plan auf die nächste Version mit
- * neuem DTG. Der Vergleich listet, was sich zwischen zwei Ständen geändert hat.
+ * Stand-Verwaltung: „Neuen Stand anlegen" hebt den laufenden Plan auf die
+ * nächste Version mit neuem DTG und friert genau diesen Inhalt als
+ * Schnappschuss ein. Jeder Schnappschuss zeigt also den Inhalt, der unter
+ * seiner Versionsnummer ausgegeben wurde. Der Prüfwert `stand.inhalt` zeigt,
+ * ob der Plan seitdem geändert wurde. Der Vergleich listet, was sich zwischen
+ * zwei Ständen geändert hat.
  */
 
 import { elternKarte } from "./baum";
@@ -13,9 +16,50 @@ export function standEinfrieren(plan: Plan, zeit: Zeitpunkt): StandSchnappschuss
   return { id: neueId(), planId: plan.id, stand: { ...plan.stand }, angelegt: zeit, plan: structuredClone(plan) };
 }
 
-/** Neuer Stand für den laufenden Plan (verändert `plan`). */
-export function standWeiterzaehlen(plan: Plan, neuerZeitpunkt: Zeitpunkt, bemerkung?: string): void {
-  plan.stand = { dtg: dtgAusZeitpunkt(neuerZeitpunkt), zeitpunkt: neuerZeitpunkt, version: plan.stand.version + 1, ...(bemerkung ? { bemerkung } : {}) };
+/**
+ * Prüfwert über den Inhalt des Plans: Stellen, Kontakte, Ansichten, Kopf.
+ * Nicht dazu gehören Stand, Zeiten, Papierkorb, ID und Name (Umbenennen in
+ * der Planliste oder „(eingelesen)" ist keine inhaltliche Änderung).
+ * FNV-1a über die JSON-Form, 32 Bit, hex.
+ */
+export function inhaltsSchluessel(plan: Plan): string {
+  const { stand: _s, geaendert: _g, geloeschtAm: _l, angelegt: _a, schemaVersion: _v, id: _i, name: _n, ...inhalt } = plan;
+  const text = JSON.stringify(inhalt);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, "0");
+}
+
+/** Hält den jetzigen Inhalt als Inhalt des laufenden Stands fest (verändert `plan`). */
+export function standInhaltFesthalten(plan: Plan): void {
+  plan.stand.inhalt = inhaltsSchluessel(plan);
+}
+
+/** Wurde der Plan seit dem Festlegen seines Stands geändert? Ohne Prüfwert: nein. */
+export function seitStandGeaendert(plan: Plan): boolean {
+  return plan.stand.inhalt !== undefined && plan.stand.inhalt !== inhaltsSchluessel(plan);
+}
+
+/**
+ * Neuer Stand für den laufenden Plan (verändert `plan`). `version` erlaubt,
+ * eine Nummer zu überspringen, die schon ein Schnappschuss trägt.
+ */
+export function standWeiterzaehlen(plan: Plan, neuerZeitpunkt: Zeitpunkt, bemerkung?: string, version = plan.stand.version + 1): void {
+  plan.stand = { dtg: dtgAusZeitpunkt(neuerZeitpunkt), zeitpunkt: neuerZeitpunkt, version, ...(bemerkung ? { bemerkung } : {}) };
+  standInhaltFesthalten(plan);
+}
+
+/**
+ * Was „Neuen Stand anlegen" tun soll: Ist der laufende Stand unverändert und
+ * noch nicht eingefroren, wird er selbst festgehalten. Sonst kommt die nächste
+ * freie Version (höher als alle eingefrorenen, auch nach Rückgängig).
+ */
+export function naechsterStand(plan: Plan, eingefroren: number[]): { weiterzaehlen: false } | { weiterzaehlen: true; version: number } {
+  if (!seitStandGeaendert(plan) && !eingefroren.includes(plan.stand.version)) return { weiterzaehlen: false };
+  return { weiterzaehlen: true, version: Math.max(plan.stand.version, ...eingefroren) + 1 };
 }
 
 export interface Aenderung {

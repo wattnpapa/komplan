@@ -58,7 +58,9 @@
       <h2>4. Speicherung im Browser</h2>
       <p>Es werden keine Cookies gesetzt. Pläne, frühere Stände, Favoriten und zuletzt benutzte Zeichen legt die Seite
         in der lokalen Datenbank des Browsers (IndexedDB) ab, damit die Arbeit nach einem Neuladen und ohne Netz erhalten
-        bleibt. Im lokalen Speicher (localStorage) steht zusätzlich der gewählte Anzeigemodus. Gelöschte Pläne liegen
+        bleibt. Im lokalen Speicher (localStorage) steht zusätzlich der gewählte Anzeigemodus und,
+        nur kurz, eine Notsicherung des offenen Plans beim Verlassen der Seite; sie wird nach dem nächsten Speichern
+        gelöscht. Gelöschte Pläne liegen
         30 Tage im Papierkorb und werden dann endgültig entfernt.</p>
       <p>Damit die Seite auch ohne Netz startet, legt der Browser ihre eigenen Dateien (Seiten, Programmcode, Schriften,
         Zeichen) im Cache-Speicher ab. Deine Pläne gehören nicht dazu.</p>

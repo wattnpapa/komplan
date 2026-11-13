@@ -92,9 +92,20 @@ export interface Stand {
   /** Laufende Nummer, +1 bei „Neuen Stand anlegen". Erscheint im Seitenfuß. */
   version: number;
   bemerkung?: string;
+  /**
+   * Prüfwert des Inhalts (`inhaltsSchluessel`: FNV-1a über den Plan ohne
+   * Stand, Zeiten, ID und Name) zum Zeitpunkt, an dem dieser Stand festgelegt
+   * wurde. Weicht der Inhalt ab, ist der Plan „geändert seit Stand"; Ausgaben
+   * tragen dann den Vermerk ENTWURF. Additiv: fehlt bei älteren Plänen, der
+   * Editor trägt ihn beim ersten Öffnen nach.
+   */
+  inhalt?: string;
 }
 
-/** Eingefrorener Plan. Eigener IndexedDB-Store, im JSON-Export optional. */
+/**
+ * Eingefrorener Plan. Eigener IndexedDB-Store, im JSON-Export optional.
+ * Enthält den Inhalt, der unter `stand.version` ausgegeben wurde.
+ */
 export interface StandSchnappschuss {
   id: Id;
   planId: Id;

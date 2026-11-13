@@ -88,6 +88,13 @@ export interface Stand {
   /** Laufende Nummer, +1 bei „Neuen Stand anlegen". Erscheint im Seitenfuß. */
   version: number;
   bemerkung?: string;
+  /**
+   * Prüfwert des Inhalts (`inhaltsSchluessel`) zum Zeitpunkt, an dem dieser
+   * Stand festgelegt wurde. Weicht der Inhalt ab, ist der Plan „geändert seit
+   * Stand" und Ausgaben tragen den Vermerk Entwurf. Fehlt bei älteren Plänen;
+   * der Editor setzt ihn beim ersten Öffnen.
+   */
+  inhalt?: string;
 }
 
 /** Eingefrorener Plan. Eigener IndexedDB-Store, im JSON-Export optional. */

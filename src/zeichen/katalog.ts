@@ -38,7 +38,7 @@ export function katalogEintrag(schluessel: string): KatalogEintrag | undefined {
 
 type OrdnerLader = () => Promise<{ default: Record<string, string> }>;
 const LADER: Record<string, OrdnerLader> = Object.fromEntries(
-  Object.entries(import.meta.glob<{ default: Record<string, string> }>("./katalog/*.json")).filter(([p]) => !p.endsWith("/index.json")).map(([pfad, lader]) => [
+  Object.entries(import.meta.glob<{ default: Record<string, string> }>(["./katalog/*.json", "!./katalog/index.json"])).map(([pfad, lader]) => [
     pfad.replace("./katalog/", "").replace(".json", ""),
     lader,
   ]),
@@ -104,6 +104,20 @@ export function zeichenName(ref: ZeichenRef | undefined): string {
   if (!ref) return "";
   if (ref.quelle === "katalog") return katalogEintrag(ref.schluessel)?.titel ?? ref.schluessel;
   if (ref.quelle === "eigen") return ref.text || eigeneVorlage(ref.vorlage)?.titel || ref.vorlage;
+  return ref.text;
+}
+
+/** Kurzform für Listen: „EAL" statt „Einsatzabschnittsleitung". */
+export function zeichenKurz(ref: ZeichenRef | undefined): string {
+  if (!ref) return "";
+  if (ref.quelle === "katalog") {
+    const name = ref.schluessel.split("/").pop()!.replaceAll("_", " ");
+    return name.length <= 10 ? name : katalogEintrag(ref.schluessel)?.titel ?? name;
+  }
+  if (ref.quelle === "eigen") {
+    const v = eigeneVorlage(ref.vorlage);
+    return ref.text ?? (v?.vorgabe.text || v?.titel || ref.vorlage);
+  }
   return ref.text;
 }
 

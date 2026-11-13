@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>komplan.app – Führungsorganisation, Kommunikationsplan, Kommunikationsskizze</title>
+  <meta name="description" content="Führungsorganisation, Kommunikationsplan (Fb Fü 76, FwDV 800) und Kommunikationsskizze (Fb Fü 77) im Browser erstellen. Kostenlos, offline, ohne Server, alle Daten bleiben auf dem Gerät." />
+  <link rel="canonical" href="https://komplan.app/" />
+  <meta name="theme-color" content="#12275e" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+  <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <style>
+    /* Grundfarbe vor dem Stylesheet: nachts kein heller Blitz. */
+    html { background: #f3f5f9; }
+    html.dunkel-modus { background: #0f1116; color: #e7eaf1; }
+    html.nacht-modus { background: #0d0c08; color: #d9cdb6; }
+  </style>
+  <script>
+    // Anzeigemodus vor dem ersten Malen anwenden.
+    try {
+      var kpModus = localStorage.getItem("komplan.anzeigemodus.v1");
+      if (!kpModus && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) kpModus = "dunkel";
+      if (kpModus === "feld" || kpModus === "nacht" || kpModus === "dunkel") document.documentElement.classList.add(kpModus + "-modus");
+    } catch (e) { /* Privatmodus: Standard */ }
+  </script>
+</head>
+<body>
+  <div id="app"></div>
+  <noscript>komplan.app braucht JavaScript. Es läuft vollständig im Browser, nichts wird hochgeladen.</noscript>
+  <script type="module" src="./src/app/main.tsx"></script>
+</body>
+</html>

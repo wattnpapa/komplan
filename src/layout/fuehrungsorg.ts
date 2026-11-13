@@ -204,13 +204,13 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
       art: "rechteck",
       x: x0 - pad, y: y0 - pad, b: x1 - x0 + 2 * pad, h: y1 - y0 + 2 * pad,
       fuellung: hv.stil === "flaeche" ? hv.farbe : undefined,
-      strich: hv.stil === "rahmen" ? hv.farbe : undefined,
-      staerke: hv.stil === "rahmen" ? 0.7 : undefined,
+      strich: hv.stil === "rahmen" ? hv.farbe : hv.linie !== "durchgezogen" ? "#000000" : undefined,
+      staerke: hv.stil === "rahmen" ? 0.7 : 0.3,
       linie: hv.linie,
       herkunft: { rolle: "hervorhebung" },
     });
     if (hv.text) {
-      elemente.push({ art: "text", x: x0 - pad + 1.5, y: y0 - pad - 1, text: hv.text, groesse: 8, anker: "start", herkunft: { rolle: "hervorhebung" } });
+      elemente.push({ art: "text", x: x1 + pad, y: y0 - pad - 1, text: hv.text, groesse: 7, fett: true, anker: "end", herkunft: { rolle: "hervorhebung" } });
     }
   }
 

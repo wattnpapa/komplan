@@ -1,0 +1,20 @@
+{
+  "id": "/",
+  "name": "komplan.app",
+  "short_name": "komplan",
+  "description": "Führungsorganisation, Kommunikationsplan und Kommunikationsskizze für BOS, offline im Browser.",
+  "lang": "de",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f9",
+  "theme_color": "#12275e",
+  "categories": ["government", "productivity", "utilities"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

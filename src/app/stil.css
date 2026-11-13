@@ -1,0 +1,181 @@
+/* ===============================================================
+   komplan: Ergänzungen zum Design-System aus stil-basis.css
+   (aus einsatzauftrag/erfassungsbogen). Nur Rollen-Token, Radius 0.
+   =============================================================== */
+
+@font-face {
+  font-family: "Roboto Slab";
+  font-weight: bold;
+  font-style: normal;
+  font-display: block;
+  src: url("../../public/schrift/roboto-slab-bold.woff") format("woff");
+}
+
+:root {
+  --satzspiegel: 72rem;
+  --spalte-links: 19rem;
+  --spalte-rechts: 22rem;
+  --auswahl: #1d6fe0;
+}
+.dunkel-modus, .nacht-modus { --auswahl: #6fa8ff; }
+
+.rahmen { min-height: 100dvh; display: flex; flex-direction: column; }
+.rahmen-editor { height: 100dvh; }
+.kopf-marke { color: inherit; text-decoration: none; }
+.seiten-kopf .kopf-inhalt { padding-top: var(--r-2); padding-bottom: var(--r-2); }
+.rahmen-editor .seiten-kopf h1 { font-size: var(--t-l); }
+.rahmen-editor .seiten-kopf .kopf-inhalt { max-width: none; }
+
+main.editor-haupt { max-width: none; padding: 0; flex: 1 1 auto; min-height: 0; display: flex; }
+
+.band { padding: var(--r-2) var(--r-4); background: var(--warn-fond); color: var(--warn-text); border-bottom: var(--strich) solid var(--warn-linie); }
+.band-gut { background: var(--gut-fond); color: var(--gut); border-color: var(--gut-linie); }
+.warnung { background: var(--warn-fond); color: var(--warn-text); border: var(--strich) solid var(--warn-linie); padding: var(--r-2) var(--r-3); }
+
+/* ---- Startseite ---- */
+.start h2 { margin-top: 0; }
+.planliste { list-style: none; margin: 0; padding: 0; }
+.planliste li {
+  display: grid; grid-template-columns: 1fr auto; gap: var(--r-1) var(--r-3);
+  padding: var(--r-3) 0; border-bottom: var(--strich) solid var(--linie-fein);
+}
+.planliste-name { font-weight: 700; font-size: var(--t-l); }
+.planliste .nebentext { grid-column: 1; }
+.planliste-aktionen { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--r-2); flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+@media (max-width: 40rem) { .planliste li { grid-template-columns: 1fr; } .planliste-aktionen { grid-column: 1; grid-row: auto; justify-content: flex-start; } }
+
+.vorlagenliste { list-style: none; padding: 0; margin: 0 0 var(--r-4); display: grid; gap: var(--r-2); grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); }
+.vorlagenliste button { width: 100%; height: 100%; text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: var(--r-1); padding: var(--r-3); }
+
+/* ---- Dialoge ---- */
+dialog.dialog {
+  border: var(--strich-stark) solid var(--linie-stark); border-radius: 0; padding: 0;
+  background: var(--flaeche); color: var(--text); max-width: min(42rem, calc(100vw - 2rem)); width: 100%;
+  max-height: calc(100dvh - 2rem);
+}
+dialog.dialog-breit { max-width: min(64rem, calc(100vw - 2rem)); }
+dialog.dialog-klein { max-width: min(28rem, calc(100vw - 2rem)); }
+dialog.dialog::backdrop { background: rgba(10, 14, 25, 0.55); }
+.dialog-kopf { display: flex; justify-content: space-between; align-items: center; padding: var(--r-3) var(--r-4); border-bottom: var(--strich) solid var(--linie); background: var(--flaeche-2); }
+.dialog-kopf h2 { margin: 0; font-size: var(--t-l); }
+.dialog-kopf .schliessen { min-width: 2.75rem; font-size: 1.4rem; line-height: 1; }
+.dialog-inhalt { padding: var(--r-3) var(--r-4) var(--r-4); overflow: auto; }
+.dialog-inhalt h3 { margin-top: var(--r-4); }
+.dialog-fuss { padding: var(--r-3) var(--r-4); border-top: var(--strich) solid var(--linie-fein); margin: 0; }
+
+.kurzmeldung {
+  position: fixed; left: 50%; bottom: var(--r-4); transform: translateX(-50%); z-index: 1000;
+  background: var(--text); color: var(--flaeche); padding: var(--r-2) var(--r-4); max-width: calc(100vw - 2rem);
+}
+.kurzmeldung-fehler { background: var(--alarm); color: #fff; }
+
+/* ---- Editor ---- */
+.editor { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; width: 100%; }
+.werkzeugleiste {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--r-2);
+  padding: var(--r-2) var(--r-3); border-bottom: var(--strich) solid var(--linie); background: var(--flaeche);
+}
+.werkzeugleiste button { min-height: 2.5rem; padding: 0.3rem 0.7rem; }
+.werkzeugleiste .plan-name { font-weight: 700; min-width: 10rem; flex: 0 1 22rem; }
+.werkzeugleiste .trenner { width: 1px; align-self: stretch; background: var(--linie-fein); margin: 0 var(--r-1); }
+.speicher-stand { font-size: var(--t-xs); color: var(--text-2); white-space: nowrap; }
+.speicher-stand.gespeichert { color: var(--gut); }
+.speicher-stand.fehler { color: var(--alarm); font-weight: 700; }
+.hinweis-marke { font-size: var(--t-xs); font-weight: 700; color: var(--warn-text); background: var(--warn-fond); border: var(--strich) solid var(--warn-linie); padding: 0.15rem 0.5rem; cursor: help; }
+
+.menue { position: relative; }
+.menue-liste, .kontextmenue {
+  position: absolute; z-index: 50; top: 100%; left: 0; min-width: 16rem; display: flex; flex-direction: column;
+  background: var(--flaeche); border: var(--strich-stark) solid var(--linie-stark); box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+.kontextmenue { position: fixed; top: auto; left: auto; }
+.menue-liste button, .kontextmenue button { border: none; text-align: left; justify-content: flex-start; border-bottom: var(--strich) solid var(--linie-fein); }
+
+.editor-spalten { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: var(--spalte-links) minmax(0, 1fr) var(--spalte-rechts); }
+.spalte-links, .spalte-rechts { overflow: auto; background: var(--flaeche); min-height: 0; }
+.spalte-links { border-right: var(--strich) solid var(--linie); padding: var(--r-2) 0; display: flex; flex-direction: column; }
+.spalte-rechts { border-left: var(--strich) solid var(--linie); padding: var(--r-3) var(--r-4); }
+.spalte-mitte { position: relative; min-width: 0; min-height: 0; display: flex; }
+@media (max-width: 72rem) {
+  .editor-spalten { grid-template-columns: 16rem minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) minmax(0, 40%); }
+  .spalte-rechts { grid-column: 1 / -1; border-left: none; border-top: var(--strich) solid var(--linie); }
+}
+@media (max-width: 44rem) {
+  .editor-spalten { grid-template-columns: 1fr; grid-template-rows: minmax(0, 30%) minmax(0, 1fr) minmax(0, 35%); }
+  .spalte-links { border-right: none; border-bottom: var(--strich) solid var(--linie); }
+}
+
+/* Gliederung */
+.gliederung { flex: 1 1 auto; }
+.gliederung ul { list-style: none; margin: 0; padding: 0; }
+.gl-zeile {
+  display: flex; align-items: center; gap: var(--r-1); min-height: 2.5rem; padding-right: var(--r-2);
+  cursor: pointer; border: 2px solid transparent; user-select: none;
+}
+.gl-zeile:hover { background: var(--flaeche-2); }
+.gl-zeile.gewaehlt { background: color-mix(in srgb, var(--auswahl) 16%, var(--flaeche)); border-color: var(--auswahl); }
+.gl-zeile:focus-visible { outline: var(--fokus) solid var(--akzent); outline-offset: -3px; }
+.gl-zeile.ziel-hinein { border-color: var(--gut); background: var(--gut-fond); }
+.gl-zeile.ziel-davor { border-top-color: var(--gut); border-top-width: 3px; }
+.gl-zeile.ziel-danach { border-bottom-color: var(--gut); border-bottom-width: 3px; }
+.gl-klapp { width: 1.6rem; min-height: 1.6rem; min-width: 1.6rem; padding: 0; border: none; background: none; color: var(--text-2); flex: none; }
+.gl-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--t-s); }
+.gl-marke { font-size: var(--t-xs); color: var(--text-2); }
+.gl-auslassung { width: 26px; text-align: center; font-weight: 700; }
+.gl-leer, .gl-titel { padding: 0 var(--r-3); }
+.gl-titel { font-size: var(--t-s); margin: var(--r-4) 0 0; }
+.gliederung .hinweis { padding: 0 var(--r-3); }
+.gl-ablage { margin: var(--r-2) var(--r-3); padding: var(--r-3); border: 2px dashed var(--linie-stark); font-size: var(--t-xs); color: var(--text-2); }
+.gl-ablage.ziel-hinein { border-color: var(--gut); background: var(--gut-fond); }
+.tasten-hilfe { padding: var(--r-2) var(--r-3); margin-top: auto; }
+
+.zeichen-bild { display: inline-block; flex: none; line-height: 0; }
+.zeichen-bild svg { width: 100%; height: 100%; }
+
+/* Zeichenfläche: das Blatt bleibt immer weiß (Druckbild), auch im Dunkel-Modus. */
+.zeichenflaeche { flex: 1 1 auto; overflow: auto; background: var(--vorschau-fond, #525659); padding: var(--r-4); cursor: default; touch-action: none; }
+.zeichenflaeche.verschiebt { cursor: grabbing; }
+.blatt { position: relative; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,0.35); margin: 0 auto; }
+.blatt > div { line-height: 0; }
+.blatt [data-stelle] { cursor: pointer; }
+.auswahl-ebene { position: absolute; inset: 0; pointer-events: none; }
+.auswahl-rahmen { fill: none; stroke: var(--auswahl); stroke-width: 0.6; stroke-dasharray: 1.5 1; }
+.nacht-modus .blatt { filter: brightness(0.75) sepia(0.4); }
+
+/* Eigenschaften */
+.eigenschaften .eig-titel { font-size: var(--t-l); margin: 0 0 var(--r-2); overflow-wrap: anywhere; }
+.eig-zeichen { display: flex; flex-direction: column; gap: var(--r-2); }
+.zeichen-knopf { display: flex; align-items: center; gap: var(--r-3); text-align: left; padding: var(--r-2); width: 100%; justify-content: flex-start; }
+.eig-gruppe { margin-top: var(--r-4); border-top: var(--strich) solid var(--linie-fein); padding-top: var(--r-2); }
+.eig-gruppe > summary { cursor: pointer; font-weight: 700; min-height: 2.5rem; display: flex; align-items: center; }
+.hilfe { margin: 0; }
+.hv-zeile { display: flex; flex-wrap: wrap; gap: var(--r-1); align-items: center; margin-top: var(--r-2); }
+.hv-zeile input[type="color"] { width: 2.75rem; padding: 0.15rem; }
+.hv-zeile input:not([type="color"]) { flex: 1 1 6rem; }
+input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
+
+/* Zeichenpalette */
+.reiter-leiste { display: flex; gap: 0; border-bottom: var(--strich-stark) solid var(--linie); margin-bottom: var(--r-3); }
+.reiter-leiste button { border: none; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+.reiter-leiste button[aria-selected="true"] { border-bottom-color: var(--akzent); font-weight: 700; color: var(--akzent); }
+.zeichen-raster { list-style: none; padding: 0; margin: var(--r-2) 0; display: grid; gap: var(--r-2); grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr)); }
+.zeichen-raster li { position: relative; }
+.zeichen-kachel { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; gap: var(--r-1); padding: var(--r-2); text-align: center; }
+.zeichen-raster li.gewaehlt .zeichen-kachel { border-color: var(--auswahl); border-width: 2px; }
+.zeichen-kachel-name { font-size: var(--t-xs); line-height: 1.25; overflow-wrap: anywhere; }
+.zeichen-kachel-neben { font-size: 0.7rem; color: var(--text-2); }
+.stern { position: absolute; top: 2px; right: 2px; min-height: 0; min-width: 0; padding: 0.1rem 0.3rem; border: none; background: none; color: var(--linie-stark); font-size: 1rem; }
+.stern.an { color: #d49b00; }
+.frei-zeichen { display: grid; grid-template-columns: auto 1fr; gap: var(--r-4); align-items: start; }
+.frei-vorschau { background: #fff; border: var(--strich) solid var(--linie); padding: var(--r-2); }
+@media (max-width: 40rem) { .frei-zeichen { grid-template-columns: 1fr; } }
+
+.werkzeuge a { color: var(--text-2); }
+
+@media print {
+  .seiten-kopf, .werkzeugleiste, .spalte-links, .spalte-rechts, footer, .band { display: none !important; }
+  .editor-spalten { display: block; }
+  .zeichenflaeche { overflow: visible; background: none; padding: 0; }
+  .blatt { box-shadow: none; }
+  .auswahl-ebene { display: none; }
+}

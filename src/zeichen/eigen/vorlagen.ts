@@ -186,7 +186,7 @@ const fs = (id: string, titel: string, t: string, begriffe: string[], extra: Par
 
 export const EIGENE_VORLAGEN: EigeneVorlage[] = [
   fs("fuehrungsstelle", "Führungsstelle (Text frei)", "", ["führungsstelle", "fahne", "frei", "……"], {}, false),
-  fs("elo", "Einsatzleitung örtlich (ELO)", "ELO", ["elo", "einsatzleitung örtlich", "örtliche einsatzleitung"]),
+  fs("elo", "ELO (Führungsstelle)", "ELO", ["elo", "einsatzleitung"]),
   fs("luk", "Leitung und Koordinierung (LuK)", "LuK", ["luk", "leitung und koordinierung", "koordinierungsstelle"]),
   fs("luk-thw-ov", "LuK THW, Ortsverband", "LuK", ["luk", "ortsverband", "ov"], { kennung: "THW", untertext: "Ortsverband" }),
   fs("luk-thw-rst", "LuK THW, Regionalstelle", "LuK", ["luk", "regionalstelle", "rst"], { kennung: "THW", untertext: "Regionalstelle" }),
@@ -212,6 +212,10 @@ export const EIGENE_VORLAGEN: EigeneVorlage[] = [
   { id: "raute-lna", titel: "Leitender Notarzt (Raute)", begriffe: ["lna", "leitender notarzt", "rettungsdienst"], form: raute, vorgabe: { text: "LNA" }, fehltUpstream: true },
   { id: "raute-orgl", titel: "Organisatorischer Leiter (Raute)", begriffe: ["orgl", "organisatorischer leiter", "rettungsdienst"], form: raute, vorgabe: { text: "OrgL" }, fehltUpstream: true },
   { id: "raute-frei", titel: "Führung Rettungswesen (Raute, Text frei)", begriffe: ["raute", "rettungsdienst", "pol", "bw"], form: raute, vorgabe: { text: "" }, fehltUpstream: false },
+  { id: "raute-el", titel: "Einsatzleiter (Raute, DV 1-101)", begriffe: ["el", "einsatzleiter", "einsatzleitung", "raute"], form: raute, vorgabe: { text: "EL", farbe: "#FFFFFF" }, fehltUpstream: true },
+  { id: "raute-eal", titel: "Einsatzabschnittsleiter (Raute, DV 1-101)", begriffe: ["eal", "einsatzabschnittsleiter", "raute"], form: raute, vorgabe: { text: "EAL", farbe: "#FFFFFF" }, fehltUpstream: true },
+  { id: "melder", titel: "Melder (Raute)", begriffe: ["me", "melder", "kurier"], form: raute, vorgabe: { text: "Me", farbe: "#FFFFFF" }, fehltUpstream: true },
+  { id: "lts-weiss", titel: "Leitstelle (weiß, DV 1-101)", begriffe: ["lts", "leitstelle", "rückwärtige führungseinrichtung"], form: leitstelle, vorgabe: { text: "LtS", farbe: "#FFFFFF" }, fehltUpstream: true },
   { id: "einheit-thw", titel: "THW-Einheit (Text frei)", begriffe: ["einheit", "thw", "tz", "zug", "gruppe"], form: einheit, vorgabe: { text: "", farbe: ORG_FARBE.thw.fond, textfarbe: "#FFFFFF", kennung: "THW", staerke: 3 }, fehltUpstream: false },
   { id: "einheit-fw", titel: "Feuerwehr-Einheit (Text frei)", begriffe: ["einheit", "feuerwehr", "fw", "zug"], form: einheit, vorgabe: { text: "", farbe: ORG_FARBE.feuerwehr.fond, textfarbe: "#FFFFFF", kennung: "FW", staerke: 3 }, fehltUpstream: false },
 ];

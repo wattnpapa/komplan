@@ -4,9 +4,13 @@ import { Editor } from "./editor";
 import { Fusszeile } from "./fusszeile";
 import { Start } from "./start";
 import { AktualisierungsHinweis } from "./aktualisierung";
+import { datenAusFragment } from "../ausgabe/teillink";
+import { LinkImport } from "./teillink";
 
 /** Route aus dem Fragment: „#/plan/<id>" öffnet einen Plan, sonst die Planliste. */
-function routeLesen(): { plan?: string } {
+function routeLesen(): { plan?: string; link?: string } {
+  const link = datenAusFragment(location.hash);
+  if (link) return { link };
   const m = location.hash.match(/^#\/plan\/([A-Za-z0-9]+)/);
   return m ? { plan: m[1] } : {};
 }
@@ -27,6 +31,15 @@ export function App() {
 
   useEffect(() => anzeigemodusSetzen(modus), [modus]);
 
+  // Offline-Anzeige: alles geht weiter, nur Hinweis
+  const [offline, setOffline] = useState(typeof navigator !== "undefined" && navigator.onLine === false);
+  useEffect(() => {
+    const an = () => setOffline(false), aus = () => setOffline(true);
+    addEventListener("online", an);
+    addEventListener("offline", aus);
+    return () => (removeEventListener("online", an), removeEventListener("offline", aus));
+  }, []);
+
   const imEditor = !!route.plan;
 
   return (
@@ -40,6 +53,7 @@ export function App() {
             <h1>
               <a href="#/" className="kopf-marke">komplan.app</a>
             </h1>
+            {offline && <span className="offline-marke" role="status" title="Kein Netz. komplan arbeitet weiter, Pläne werden auf diesem Gerät gespeichert.">offline</span>}
             <div className="anzeige-schalter" role="group" aria-label="Anzeige">
               {MODI.map((m) => (
                 <button key={m.modus} type="button" aria-pressed={modus === m.modus} title={m.erklaerung} onClick={() => setModus(m.modus)}>
@@ -52,7 +66,7 @@ export function App() {
       </header>
       <AktualisierungsHinweis />
       <main id="inhalt" tabIndex={-1} className={imEditor ? "editor-haupt" : undefined}>
-        {route.plan ? <Editor key={route.plan} planId={route.plan} /> : <Start />}
+        {route.link ? <LinkImport daten={route.link} /> : route.plan ? <Editor key={route.plan} planId={route.plan} /> : <Start />}
       </main>
       {!imEditor && <Fusszeile />}
     </div>

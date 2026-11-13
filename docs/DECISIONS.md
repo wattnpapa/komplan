@@ -2,6 +2,18 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-13 (M4)
+
+- **Fb Fü 76 aus dem Baum**: eigene Stelle = Fokus der Ansicht (Vorgabe: oberste Stelle). Obere Reihe: übergeordnete Stelle, dann die in der Ansicht gewählten Nachbarn, dann Geschwister (vier Plätze). Die vier Kanalfelder zeigen die ersten vier Funkangaben der eigenen Stelle mit ihrem Richtungspfeil. Unterstellte: vier im Raster, fünf in der Reihe „Takt. Einheit", weitere auf Folgeblättern. Kanal oben im Kasten einer Unterstellten: deren Funk mit Richtung ↑, sonst der Führungskanal (↓) der eigenen Stelle; unten: deren Funk mit Richtung ↓.
+- **FwDV 800 aus dem Baum**: Fokus-Stelle = „Führungsstab/Führungsgruppe", ihr Leiter = „Einsatzleiter/EA-Leiter", Unterstellte = „EA/UA" (Leiter oben, Stelle als Führungsgruppe unten), fünf je Blatt. Rufgruppen-Sechsecke zeigen Funk mit Richtung ↓. Dienststelle, Sachbearbeiter (sonst F.d.R.) und Kennwort aus dem Kopf; „Benachbarte Kräfte" aus Nachbarn und Geschwistern, „Sonstige Stellen" aus den losen Stellen. Der Vermerk „(Muster)" und „Anlage 1" entfallen.
+- **Folgeblätter** liegen in der Szene untereinander (`Szene.seiten`); PDF und PowerPoint machen daraus je eine Seite bzw. Folie.
+- **PowerPoint**: jede Form ein eigenes Objekt (Rechteck, Ellipse, Freiform für Linienzüge und Fahnen, Textfeld in Arial), taktische Zeichen als PNG mit 512 px. Freiformen nutzen den Formtyp `custGeom`, den pptxgenjs 4 kann, aber nicht in seinen Typen führt.
+- **Teil-Link**: Fragment `#p=` (Plan als JSON, deflate-raw, base64url), ohne Stände. Erst nach Bestätigen des Hinweises auf die enthaltenen Daten; Logo optional weglassen. Ab 8 000 Zeichen Hinweis auf abgeschnittene Links, ab 60 000 kein Link, sondern Verweis auf den JSON-Export. Beim Öffnen wird der Plan angezeigt und erst nach „Übernehmen" als Kopie gespeichert.
+- **Simbach-Beispiele** nach den Ausbildungsfolien „Betriebsunterlagen" (Rufnamen und Kanäle wie dort, Telefonnummern erfunden). Ein Plan, drei Ansichten: Fb Fü 76, Skizze FGr FK, Skizze ZTr; die drei Vorlagen öffnen jeweils eine davon zuerst.
+- **Dateinamen** nur noch aus ASCII-Buchstaben, Ziffern und `._-`; Umlaute werden umschrieben. Chromium hat Namen mit Sonderzeichen verworfen.
+- **Offline**: Der Service Worker hält jetzt auch die TTF-Schrift (PDF) und die Lizenztexte vor; im Kopf steht „offline", solange das Gerät kein Netz hat. Ein E2E-Test lädt die App ohne Netz neu.
+- **Drucken** über den Browser: nur das Blatt, A4 quer, ohne Bedienelemente.
+
 ## 2026-11-13 (M3)
 
 - **Skizze als eigene Ansicht im selben Plan.** Stellen-Kästen, Zeichen, NSt-Tabellen und Anschlüsse mit Bezug lesen Funkrufname, Telefon, Fax und Funk aus `Plan.stellen`; die Skizze speichert nur Lage, Größe und Darstellung. Ändert man eine Nummer in der Skizze über „Kontaktdaten dieser Stelle bearbeiten", ändert sie sich in allen Ansichten.

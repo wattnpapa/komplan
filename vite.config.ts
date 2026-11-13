@@ -77,7 +77,7 @@ export default defineConfig({
       injectRegister: false,
       manifest: false,
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,woff,woff2,json}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,woff,woff2,ttf,json,txt}"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallbackDenylist: [/impressum\.html$/, /datenschutz\.html$/],
       },

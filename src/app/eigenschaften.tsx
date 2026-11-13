@@ -330,6 +330,8 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl, nurPlan }: 
           ["fuer", "für (Einsatz/Verwendung)"],
           ["fdr", "F.d.R. (Name, Dienststellung)"],
           ["einstufung", "Einstufung (z. B. VS – Nur für den Dienstgebrauch)"],
+          ["sachbearbeiter", "Sachbearbeiter (FwDV 800)"],
+          ["kennwort", "Kennwort (FwDV 800)"],
         ] as const).map(([feld, titel]) => (
           <label className="feld" key={feld}>
             {titel}
@@ -355,7 +357,7 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl, nurPlan }: 
           <input type="checkbox" checked={ansicht.kopfleiste} onChange={(e) => setzeAnsicht((a) => void (a.kopfleiste = e.target.checked))} />
           {ansicht.typ === "kommunikationsplan" ? "Kopfleiste (Formularkopf)" : "Titelzeile mit Planname und Stand"}
         </label>
-        {ansicht.typ === "kommunikationsplan" && <KomplanEinstellungen ansicht={ansicht} setzeAnsicht={setzeAnsicht} />}
+        {ansicht.typ === "kommunikationsplan" && <KomplanEinstellungen plan={plan} ansicht={ansicht} setzeAnsicht={setzeAnsicht} />}
         <div className="zeile">
           <label className="feld schmal">
             Papier
@@ -443,7 +445,7 @@ const FELDER: Array<[KomplanAnsicht["felder"][number], string]> = [
   ["mobil", "Mobil"], ["email", "E-Mail"], ["funk", "Rufgruppen/Kanäle"], ["funkrufname", "Funkrufname"], ["nebenstellen", "Nebenstellen"],
 ];
 
-function KomplanEinstellungen({ ansicht, setzeAnsicht }: { ansicht: KomplanAnsicht; setzeAnsicht: (f: (a: Draft<BaumAnsicht>) => void, b?: string) => void }) {
+function KomplanEinstellungen({ plan, ansicht, setzeAnsicht }: { plan: Plan; ansicht: KomplanAnsicht; setzeAnsicht: (f: (a: Draft<BaumAnsicht>) => void, b?: string) => void }) {
   const k = (f: (a: Draft<KomplanAnsicht>) => void) => setzeAnsicht((a) => f(a as Draft<KomplanAnsicht>));
   return (
     <>
@@ -451,10 +453,12 @@ function KomplanEinstellungen({ ansicht, setzeAnsicht }: { ansicht: KomplanAnsic
         Darstellung
         <select value={ansicht.variante} onChange={(e) => k((a) => void (a.variante = e.target.value as KomplanAnsicht["variante"]))}>
           <option value="organigramm">Organigramm mit Kontaktblöcken</option>
-          <option value="fb-fue-76" disabled>Formular Fb Fü 76 (folgt)</option>
-          <option value="fwdv-800" disabled>FwDV 800 Anlage 1 (folgt)</option>
+          <option value="fb-fue-76">Formular THW Fb Fü 76</option>
+          <option value="fwdv-800">Muster FwDV 800 Anlage 1</option>
         </select>
       </label>
+      {ansicht.variante !== "organigramm" && <FormularEinstellungen plan={plan} ansicht={ansicht} k={k} />}
+      {ansicht.variante === "organigramm" && (<>
       <label className="feld">
         Kontaktblock
         <select value={ansicht.kontaktLage} onChange={(e) => k((a) => void (a.kontaktLage = e.target.value as KontaktLage))}>
@@ -476,6 +480,37 @@ function KomplanEinstellungen({ ansicht, setzeAnsicht }: { ansicht: KomplanAnsic
         <input type="checkbox" checked={ansicht.platzhalter} onChange={(e) => k((a) => void (a.platzhalter = e.target.checked))} />
         Leere Felder als gepunktete Linie (zum Ausfüllen auf Papier)
       </label>
+      </>)}
+    </>
+  );
+}
+
+/** Formularansichten: eigene Stelle (Mitte) und zusätzliche Nachbarn in der oberen Reihe. */
+function FormularEinstellungen({ plan, ansicht, k }: { plan: Plan; ansicht: KomplanAnsicht; k: (f: (a: Draft<KomplanAnsicht>) => void) => void }) {
+  const stellen = Object.values(plan.stellen).filter((s) => s.typ === "stelle");
+  return (
+    <>
+      <label className="feld">
+        Eigene Führungsstelle (Mitte des Formulars)
+        <select value={ansicht.fokus ?? ""} onChange={(e) => k((a) => void (a.fokus = e.target.value || undefined))}>
+          <option value="">oberste Stelle</option>
+          {stellen.map((s) => <option key={s.id} value={s.id}>{stelleTitel(s)}</option>)}
+        </select>
+      </label>
+      <fieldset className="wahl">
+        <legend>Benachbarte Stellen (zusätzlich zu übergeordneter und Geschwistern)</legend>
+        {stellen.filter((s) => s.id !== ansicht.fokus).slice(0, 40).map((s) => (
+          <label className="inline" key={s.id}>
+            <input type="checkbox" checked={ansicht.nachbarn?.includes(s.id) ?? false} onChange={(e) => k((a) => void (a.nachbarn = e.target.checked ? [...(a.nachbarn ?? []), s.id] : (a.nachbarn ?? []).filter((x) => x !== s.id)))} />
+            {stelleTitel(s)}
+          </label>
+        ))}
+      </fieldset>
+      <p className="hinweis">
+        {ansicht.variante === "fb-fue-76"
+          ? "Übergeordnete und benachbarte Stellen stehen oben (vier Plätze), die eigene in der Mitte mit bis zu vier Kanälen, Unterstellte im Raster (vier) und in der Reihe „Takt. Einheit“ (fünf); weitere auf Folgeblättern. Kanal nach oben: Funk der Unterstellten mit Richtung ↑, sonst der Führungskanal (↓) der eigenen Stelle."
+          : "Die eigene Stelle ist der Führungsstab, ihr Leiter der Einsatzleiter. Unterstellte werden EA/UA-Kästen (fünf je Blatt), ihre Rufgruppen mit Richtung ↓ stehen in den Sechsecken. Dienststelle, Sachbearbeiter und Kennwort kommen aus dem Kopf des Plans."}
+      </p>
     </>
   );
 }

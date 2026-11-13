@@ -2,7 +2,7 @@
 
 Führungsorganisation, Kommunikationsplan und Kommunikationsskizze (Fb Fü 76/77, FwDV 800 Anlage 1) im Browser, auf einem gemeinsamen Datenmodell. Teil der Werkzeugfamilie einsatz.tools. Läuft ohne Server; Pläne liegen nur in der lokalen Datenbank des Geräts und starten nach dem ersten Aufruf auch ohne Netz.
 
-Stand: Meilenstein 3 (Führungsorganisation, Kommunikationsplan als Organigramm, Kommunikationsskizze Fb Fü 77, PDF, Stände). Formularansichten Fb Fü 76 und FwDV 800, PPTX, Teil-Link und Hinweisliste folgen.
+Stand: Meilenstein 4. Führungsorganisation, Kommunikationsplan (Organigramm, Fb Fü 76, FwDV 800), Kommunikationsskizze Fb Fü 77, Export PDF/PPTX/SVG/PNG/JSON, Teil-Link, Stände, Hinweisliste, offline.
 
 ## Entwicklung
 

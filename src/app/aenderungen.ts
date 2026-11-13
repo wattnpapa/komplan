@@ -24,6 +24,11 @@ export const AENDERUNGEN: Aenderung[] = [
       "Kommunikationsskizze nach Fb Fü 77 als freie Zeichenfläche: Stellen-Kästen, Anschluss-Fahnen, Geräte, NSt-Tabelle, Platzhalter, Rahmen und Verbinder, die beim Verschieben an den Elementen hängen bleiben.",
       "Skizze aus einer Stelle erzeugen (Rechtsklick im Plan): eigene Stelle mittig, übergeordnete links, unterstellte rechts oder unten, mit den Kontaktdaten aus dem Plan.",
       "Die fünf Vorlagen Kommunikationsskizze 1 bis 5 des THW als Startvorlagen, umschaltbar zwischen taktischer und technischer Skizze.",
+      "Kommunikationsplan auch als Formular THW Fb Fü 76 und als Muster nach FwDV 800 Anlage 1, aus denselben Daten, mit Folgeblättern bei vielen Unterstellten.",
+      "Export als PowerPoint mit bearbeitbaren Formen und Texten, Drucken direkt aus dem Browser.",
+      "Plan als Link teilen: der ganze Plan steckt im Link, nach einem deutlichen Hinweis auf die enthaltenen Kontaktdaten; wer den Link öffnet, übernimmt eine Kopie.",
+      "Hinweisliste mit Sprung zur betroffenen Stelle, Anzeige „offline“ im Kopf, neue Beispiele FwDV 800 und Einsatzübung Simbach (Fb Fü 76, Skizzen FGr FK und ZTr).",
+      "Dateinamen von Exporten enthalten keine Umlaute und Sonderzeichen mehr; vorher hieß die Datei in manchen Browsern nur „download“.",
     ],
   },
 ];

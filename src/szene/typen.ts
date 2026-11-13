@@ -86,6 +86,11 @@ export interface Szene {
   breite: number; // mm
   hoehe: number;  // mm
   elemente: Element[];
+  /**
+   * Formularansichten mit Folgeseiten: Seiten liegen untereinander in der
+   * Szene; das PDF gibt jede als eigene Seite aus.
+   */
+  seiten?: Array<{ y: number; h: number }>;
 }
 
 /** Strichmuster in mm für SVG/PDF; schwarzweiß unterscheidbar. */

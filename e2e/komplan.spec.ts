@@ -36,7 +36,8 @@ test("Kontakte eingeben, Kommunikationsplan, PDF und Stände", async ({ page }) 
   await page.getByRole("button", { name: /^Stand / }).click();
   await page.getByLabel(/Bemerkung/).fill("Lagewechsel");
   await page.getByRole("button", { name: "Neuen Stand anlegen" }).click();
-  await expect(page.getByText(/Version 2/).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Stand .*V2/ })).toBeVisible();
+  await expect(page.locator(".planliste").getByText(/Version 1/)).toBeVisible();
   await page.keyboard.press("Escape");
   await page.locator(".gliederung .gl-zeile").first().click();
   await page.getByLabel("Funkrufname", { exact: true }).fill("Heros Muster 1");

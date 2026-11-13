@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
 import type { Draft } from "immer";
-import { dateiname, herunterladen, jsonExport, pngExport, svgExport } from "../ausgabe/export";
-import { fuehrungsorgSzene } from "../layout/fuehrungsorg";
+import { dateiname, herunterladen, jsonExport, pngExport, pptxExport, svgExport } from "../ausgabe/export";
 import { elternVon } from "../modell/baum";
 import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, type Ziel } from "../modell/plan";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan } from "../modell/typen";
@@ -18,10 +17,11 @@ import { PdfDialog } from "./pdf-dialog";
 import { SkizzenFlaeche, type Platzierer } from "./skizzen-flaeche";
 import { SkizzenWerkzeuge } from "./skizzen-werkzeuge";
 import { SkizzenAnsichtEigenschaften, SkizzenElementEigenschaften } from "./skizzen-eigenschaften";
-import { skizzeSzene } from "../layout/skizze";
+import { ansichtSzene } from "../layout/ansicht";
 import { SKIZZEN_VORLAGEN, skizzeAusStelle, skizzeAusVorlage, type SkizzenVorlage } from "../modell/skizze";
 import type { SkizzenAnsicht } from "../modell/typen";
 import { StaendeDialog } from "./staende-dialog";
+import { TeillinkDialog } from "./teillink";
 
 type BaumAnsicht = FuehrungsorgAnsicht | KomplanAnsicht;
 const SPEICHER_VERZUG = 800;
@@ -70,6 +70,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const [ansichtId, setAnsichtId] = useState<Id>();
   const pdfDialog = useRef<HTMLDialogElement>(null);
   const staendeDialog = useRef<HTMLDialogElement>(null);
+  const linkDialog = useRef<HTMLDialogElement>(null);
   const alleAnsichten = plan.ansichtReihenfolge.filter((a) => plan.ansichten[a]);
   const baumAnsichten = alleAnsichten.filter((a) => plan.ansichten[a]!.typ !== "skizze");
   const aktiveAnsicht = useMemo(() => plan.ansichten[ansichtId && alleAnsichten.includes(ansichtId) ? ansichtId : alleAnsichten[0]!]!, [plan, ansichtId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -137,8 +138,8 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   }, [zeichenSchluessel, store]);
 
   const szene = useMemo(
-    () => (skizze ? skizzeSzene(plan, skizze) : fuehrungsorgSzene(plan, ansicht, { titel: ansicht.kopfleiste && ansicht.typ === "fuehrungsorganisation" })),
-    [plan, ansicht, skizze, zeichenBereit], // eslint-disable-line react-hooks/exhaustive-deps
+    () => ansichtSzene(plan, aktiveAnsicht),
+    [plan, aktiveAnsicht, zeichenBereit], // eslint-disable-line react-hooks/exhaustive-deps
   );
   // Elemente, die es nicht mehr gibt (Undo, Löschen), aus der Skizzen-Auswahl nehmen
   useEffect(() => {
@@ -148,7 +149,9 @@ function EditorGeladen({ store }: { store: PlanStore }) {
       return neu.length === a.length ? a : neu;
     });
   }, [skizze]);
-  const hinweise = useMemo(() => planPruefen(plan).filter((h) => h.stufe !== "info"), [plan]);
+  const alleHinweise = useMemo(() => planPruefen(plan), [plan]);
+  const hinweise = alleHinweise.filter((h) => h.stufe !== "info");
+  const [hinweiseOffen, setHinweiseOffen] = useState(false);
 
   // Autosave
   useEffect(() => {
@@ -305,10 +308,11 @@ function EditorGeladen({ store }: { store: PlanStore }) {
     return () => removeEventListener("keydown", f);
   });
 
-  const exportieren = async (art: "svg" | "png" | "png-transparent" | "json") => {
+  const exportieren = async (art: "svg" | "png" | "png-transparent" | "json" | "pptx") => {
     setExportOffen(false);
     try {
-      if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg", aktiveAnsicht.name));
+      if (art === "pptx") herunterladen(await pptxExport(szene, `${plan.name} – ${aktiveAnsicht.name}`), dateiname(plan, "pptx", aktiveAnsicht.name));
+      else if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg", aktiveAnsicht.name));
       else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(szene, 3, art === "png" ? "#ffffff" : undefined), dateiname(plan, "png", aktiveAnsicht.name));
       else herunterladen(jsonExport(plan, await staendeVon(plan.id)), dateiname(plan, "json"));
       return;
@@ -377,21 +381,51 @@ function EditorGeladen({ store }: { store: PlanStore }) {
           {exportOffen && (
             <div className="menue-liste" role="menu">
               <button role="menuitem" type="button" onClick={() => (setExportOffen(false), pdfDialog.current?.showModal())}>PDF…</button>
+              <button role="menuitem" type="button" onClick={() => void exportieren("pptx")}>PowerPoint (bearbeitbar)</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("svg")}>SVG (Vektor)</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("png")}>PNG, weißer Hintergrund</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("png-transparent")}>PNG, transparent</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("json")}>JSON (zum Weiterbearbeiten)</button>
+              <button role="menuitem" type="button" onClick={() => (setExportOffen(false), linkDialog.current?.showModal())}>Als Link teilen…</button>
+              <button role="menuitem" type="button" onClick={() => (setExportOffen(false), setTimeout(() => print(), 50))}>Drucken</button>
             </div>
           )}
         </div>
         <button type="button" onClick={() => staendeDialog.current?.showModal()} title="Stand anlegen, frühere Stände ansehen und vergleichen">
           Stand <span className="daten">{plan.stand.dtg}</span> · V{plan.stand.version}
         </button>
-        {hinweise.length > 0 && (
-          <span className="hinweis-marke" title={hinweise.map((h) => h.text).join("\n")}>
-            {hinweise.length} Hinweis{hinweise.length > 1 ? "e" : ""}
-          </span>
-        )}
+        <span className="menue">
+          <button
+            type="button"
+            className={`hinweis-knopf ${hinweise.some((h) => h.stufe === "fehler") ? "fehler" : hinweise.length ? "warn" : ""}`}
+            aria-expanded={hinweiseOffen}
+            onClick={() => setHinweiseOffen(!hinweiseOffen)}
+            title="Prüfung des Plans: fehlende Erreichbarkeit, doppelte Rufgruppen, abgelaufene Kontakte, lose Skizzenelemente"
+          >
+            {hinweise.length ? `${hinweise.length} Hinweis${hinweise.length > 1 ? "e" : ""}` : "✓ Prüfung"}
+          </button>
+          {hinweiseOffen && (
+            <div className="menue-liste hinweis-liste" role="dialog" aria-label="Hinweise zum Plan">
+              {alleHinweise.length === 0 ? (
+                <p className="nebentext">Keine Hinweise.</p>
+              ) : (
+                <ul>
+                  {[...alleHinweise].sort((a, b) => ["fehler", "warnung", "info"].indexOf(a.stufe) - ["fehler", "warnung", "info"].indexOf(b.stufe)).map((h, i) => (
+                    <li key={i} className={`hinweis-${h.stufe}`}>
+                      <span className="hinweis-stufe">{h.stufe === "fehler" ? "Fehler" : h.stufe === "warnung" ? "Achtung" : "Info"}</span>
+                      {h.stelle && plan.stellen[h.stelle] ? (
+                        <button type="button" className="link" onClick={() => (setHinweiseOffen(false), setSkAuswahl([]), waehle(h.stelle!))}>{h.text}</button>
+                      ) : (
+                        <span>{h.text}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="hinweis">Hinweise blockieren nichts. Gültigkeiten werden gegen den Stand {plan.stand.dtg} geprüft.</p>
+            </div>
+          )}
+        </span>
       </div>
 
       <div className="ansichten-leiste" role="tablist" aria-label="Ansichten">
@@ -504,6 +538,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
       </div>
       <PdfDialog dialogRef={pdfDialog} plan={plan} ansicht={skizze ?? ansicht} szene={szene} />
       <StaendeDialog dialogRef={staendeDialog} store={store} plan={plan} />
+      <TeillinkDialog dialogRef={linkDialog} plan={plan} />
     </div>
   );
 }

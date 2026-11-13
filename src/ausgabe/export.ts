@@ -37,14 +37,21 @@ export function herunterladen(daten: Blob, dateiname: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
-/** Dateiname aus Planname und Stand, ohne Zeichen, die Dateisysteme stören. */
+/**
+ * Dateiname aus Planname, Ansicht und Stand. Nur ASCII-Buchstaben, Ziffern,
+ * „-", „_" und „.": Chromium verwirft sonst den Namen (Datei heißt dann
+ * „download"), und Mailprogramme und Windows-Freigaben vertragen es auch.
+ */
 export function dateiname(plan: Plan, endung: string, zusatz = ""): string {
   const basis = `${plan.name || "komplan"}${zusatz ? ` ${zusatz}` : ""} ${plan.stand.dtg}`
     .normalize("NFC")
-    .replace(/[\\/:*?"<>|]+/g, "-")
-    .replace(/\s+/g, "_")
+    .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue").replace(/ß/g, "ss")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9._-]+/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
     .slice(0, 120);
-  return `${basis}.${endung}`;
+  return `${basis || "komplan"}.${endung}`;
 }
 
 export async function svgExport(szene: Szene, hintergrund?: string): Promise<string> {
@@ -123,4 +130,10 @@ export async function pdfExport(szene: Szene, plan: Plan, ansichtName: string, w
     einstufung: plan.kopf.einstufung ? { text: plan.kopf.einstufung, position: wahl.einstufungPosition } : undefined,
     zeichenSchriftTtf: ttf || undefined,
   });
+}
+
+/** PowerPoint mit editierbaren Formen; pptxgenjs wird erst hier nachgeladen. */
+export async function pptxExport(szene: Szene, titel: string): Promise<Blob> {
+  const [{ pptxErzeugen }, schrift] = await Promise.all([import("./pptx"), zeichenSchrift()]);
+  return pptxErzeugen(szene, titel, schrift);
 }

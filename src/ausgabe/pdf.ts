@@ -175,7 +175,13 @@ export async function pdfErzeugen(szene: Szene, o: PdfOptionen): Promise<Blob> {
   const oben = RAND + vermerkOben;
 
   const seiten: Array<{ a: Abbildung; clip?: [number, number, number, number]; marke?: string }> = [];
-  if (o.grosseFlaeche === "einpassen") {
+  if (szene.seiten?.length) {
+    // Formular mit festen Seiten: jede Seite eingepasst und zugeschnitten
+    for (const [i, sb] of szene.seiten.entries()) {
+      const s = Math.min(nutzB / szene.breite, nutzH / sb.h, 2);
+      seiten.push({ a: { s, ox: RAND + (nutzB - szene.breite * s) / 2, oy: oben - sb.y * s }, clip: [RAND, oben, nutzB, nutzH], marke: szene.seiten.length > 1 ? `Blatt ${i + 1}` : undefined });
+    }
+  } else if (o.grosseFlaeche === "einpassen") {
     const s = Math.min(nutzB / szene.breite, nutzH / szene.hoehe, 2);
     seiten.push({ a: { s, ox: RAND + (nutzB - szene.breite * s) / 2, oy: oben + (nutzH - szene.hoehe * s) / 2 } });
   } else {

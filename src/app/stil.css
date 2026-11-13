@@ -244,3 +244,24 @@ input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
 .skizzen-ebene .auswahl-rahmen { stroke-dasharray: none; }
 .skizzen-bereich { position: relative; }
 .skizzen-bereich .wz-hinweis { position: absolute; right: var(--r-3); bottom: var(--r-3); z-index: 5; pointer-events: none; }
+
+/* ---- M4: Hinweise, Druck ---- */
+.hinweis-knopf.warn { color: var(--warn-text); background: var(--warn-fond); border-color: var(--warn-linie); font-weight: 700; }
+.hinweis-knopf.fehler { color: var(--alarm); background: var(--alarm-fond); border-color: var(--alarm-linie); font-weight: 700; }
+.hinweis-liste { left: auto; right: 0; width: min(34rem, 90vw); max-height: 60vh; overflow: auto; padding: var(--r-2) var(--r-3); }
+.hinweis-liste ul { list-style: none; margin: 0; padding: 0; }
+.hinweis-liste li { display: flex; gap: var(--r-2); align-items: baseline; padding: var(--r-1) 0; border-bottom: var(--strich) solid var(--linie-fein); font-size: var(--t-s); }
+.hinweis-liste li button.link { text-align: left; border: none; min-height: 0; padding: 0; }
+.hinweis-stufe { flex: none; font-family: var(--schrift-daten); font-size: var(--t-xs); font-weight: 700; padding: 0 0.3rem; border: var(--strich) solid var(--linie); }
+.hinweis-fehler .hinweis-stufe { color: var(--alarm); border-color: var(--alarm-linie); background: var(--alarm-fond); }
+.hinweis-warnung .hinweis-stufe { color: var(--warn-text); border-color: var(--warn-linie); background: var(--warn-fond); }
+
+@media print {
+  @page { size: A4 landscape; margin: 8mm; }
+  html, body, .rahmen, main.editor-haupt, .editor, .editor-spalten, .spalte-mitte, .skizzen-bereich { height: auto !important; overflow: visible !important; display: block !important; background: #fff !important; }
+  .ansichten-leiste, .skizzen-werkzeuge, .kontextmenue, .menue-liste, dialog, .kurzmeldung, .sprungmarke { display: none !important; }
+  .blatt { width: 100% !important; height: auto !important; margin: 0; filter: none !important; }
+  .blatt > div > svg { width: 100% !important; height: auto !important; }
+  .skizzen-ebene { display: none !important; }
+}
+.offline-marke { font-size: var(--t-xs); font-weight: 700; color: var(--kopf-fond); background: var(--kopf-auf); padding: 0.1rem 0.5rem; }

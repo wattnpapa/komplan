@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type RefObject } from "react";
 import { szeneZuSvg } from "../ausgabe/svg";
-import { fuehrungsorgSzene } from "../layout/fuehrungsorg";
+import { ansichtSzene } from "../layout/ansicht";
 import { jetzt, zeitpunktLesbar } from "../modell/dtg";
 import { planDuplizieren } from "../modell/plan";
 import { planVergleichen, standEinfrieren, standWeiterzaehlen, type Aenderung } from "../modell/stand";
@@ -50,9 +50,9 @@ export function StaendeDialog({ dialogRef, store, plan }: { dialogRef: RefObject
   const aenderungen: Aenderung[] = useMemo(() => (gewaehlt ? planVergleichen(gewaehlt.plan, plan) : []), [gewaehlt, plan]);
   const vorschau = useMemo(() => {
     if (!gewaehlt) return "";
-    const a = gewaehlt.plan.ansichten[gewaehlt.plan.ansichtReihenfolge.find((id) => gewaehlt.plan.ansichten[id]?.typ !== "skizze")!];
-    if (!a || a.typ === "skizze") return "";
-    return szeneZuSvg(fuehrungsorgSzene(gewaehlt.plan, a, { titel: true }), { hintergrund: "#fff", breite: "100%" });
+    const a = gewaehlt.plan.ansichten[gewaehlt.plan.ansichtReihenfolge[0]!];
+    if (!a) return "";
+    return szeneZuSvg(ansichtSzene(gewaehlt.plan, a), { hintergrund: "#fff", breite: "100%" });
   }, [gewaehlt]);
 
   return (

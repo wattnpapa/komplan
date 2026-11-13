@@ -7,6 +7,7 @@
 import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neuerPlan, neueStelle, stelleAnlegen } from "./plan";
 import { neueId } from "./id";
 import { SKIZZEN_VORLAGEN, skizzeAusVorlage, type SkizzenVorlage } from "./skizze";
+import { fwdv800Plan, simbachMitSkizzen } from "./beispiel-simbach";
 import type { Funkangabe, Id, Kontakt, KontaktArt, Plan, Stelle, ZeichenRef } from "./typen";
 
 const k = (art: KontaktArt, wert: string, extra: Partial<Kontakt> = {}): Kontakt => ({ id: neueId(), art, wert, ...extra });
@@ -19,7 +20,7 @@ export interface Vorlage {
   id: string;
   titel: string;
   beschreibung: string;
-  gruppe: "Leer" | "Führungsorganisation" | "Kommunikationsskizze" | "Beispiele";
+  gruppe: "Leer" | "Führungsorganisation" | "Kommunikationsplan" | "Kommunikationsskizze" | "Beispiele";
   erzeugen: (zeit?: string) => Plan;
 }
 
@@ -57,6 +58,34 @@ export const VORLAGEN: Vorlage[] = [
     gruppe: "Kommunikationsskizze" as const,
     erzeugen: (zeit?: string) => skizzenPlan(zeit, v),
   })),
+  {
+    id: "fwdv800",
+    titel: "Kommunikationsplan FwDV 800 Anlage 1",
+    beschreibung: "Muster der FwDV 800: Führungsgruppe mit Einsatzleiter, drei Einsatzabschnitte mit Rufgruppen (Feuerwehr, erfundene Daten).",
+    gruppe: "Kommunikationsplan",
+    erzeugen: (zeit) => fwdv800Plan(zeit),
+  },
+  {
+    id: "fbfue76",
+    titel: "Kommunikationsplan THW Fb Fü 76",
+    beschreibung: "Formular Fb Fü 76 mit EAL 3, übergeordneter EL und drei UEAL (Ausbildungsbeispiel Simbach, Nummern erfunden).",
+    gruppe: "Kommunikationsplan",
+    erzeugen: (zeit) => simbachMitSkizzen(zeit, "fb76"),
+  },
+  {
+    id: "simbach-fgrfk",
+    titel: "Beispiel Kommunikationsskizze FGr FK (Simbach)",
+    beschreibung: "Technisch-/taktische Skizze der EAL 3 mit Geräten, NSt-Tabelle, Anschlüssen und drei UEAL; rot Funk, blau Draht.",
+    gruppe: "Beispiele",
+    erzeugen: (zeit) => simbachMitSkizzen(zeit, "fgrfk"),
+  },
+  {
+    id: "simbach-ztr",
+    titel: "Beispiel Kommunikationsskizze ZTr (Simbach)",
+    beschreibung: "Skizze mit Einheiten unten an der Sammelschiene und freien Plätzen.",
+    gruppe: "Beispiele",
+    erzeugen: (zeit) => simbachMitSkizzen(zeit, "ztr"),
+  },
   {
     id: "dv1101-gruppe",
     titel: "Einsatz einer Gruppe (DV 1-101)",

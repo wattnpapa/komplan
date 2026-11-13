@@ -1,0 +1,53 @@
+{
+  "name": "komplan",
+  "version": "0.1.0",
+  "description": "Führungsorganisation, Kommunikationsplan und Kommunikationsskizze (Fb Fü 76/77, FwDV 800) im Browser, offline, ohne Server.",
+  "license": "EUPL-1.2",
+  "author": {
+    "name": "Johannes Rudolph"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wattnpapa/komplan.git"
+  },
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test --trace off",
+    "zeichen:holen": "node --import tsx scripts/zeichen-holen.mts",
+    "zeichen:fehlen": "node --import tsx scripts/zeichen-fehlen.mts",
+    "icons": "node --import tsx scripts/icons.mts"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
+    "idb": "^8.0.4",
+    "immer": "^11.2.10",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0",
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.10",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "@vitest/coverage-v8": "^5.1.0",
+    "jsdom": "^31.0.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8",
+    "vite-plugin-pwa": "^2.0.0",
+    "vitest": "^5.1.0",
+    "workbox-window": "^7.4.1"
+  }
+}

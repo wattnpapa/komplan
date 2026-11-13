@@ -1,2 +1,7 @@
 # Echtdaten und urheberrechtlich geschützte Vorschriften, nur lokal
 _intern/
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/

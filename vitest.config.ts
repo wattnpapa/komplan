@@ -1,0 +1,36 @@
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
+
+// Kern-Bausteine aus vendor/ werden aus der Quelle gelesen, wie im Bundle.
+function kernPfad(baustein: string, modul: string): string {
+  return fileURLToPath(new URL(`./vendor/${baustein}/src/${modul}.ts`, import.meta.url));
+}
+const kernAliasse = [
+  { find: /^@bos\/eeb-format\/(.*)$/, replacement: kernPfad("eeb-format", "$1") },
+  { find: /^@bos\/eeb-format$/, replacement: kernPfad("eeb-format", "index") },
+  { find: /^@bos\/vokabulare\/(.*)$/, replacement: kernPfad("bos-vokabulare", "$1") },
+  { find: /^@bos\/vokabulare$/, replacement: kernPfad("bos-vokabulare", "index") },
+];
+
+// Zwei Suiten wie in erfassungsbogen: „logik" (node) und „oberflaeche" (jsdom).
+export default defineConfig({
+  test: {
+    projects: [
+      {
+        resolve: { alias: kernAliasse },
+        test: { name: "logik", environment: "node", include: ["src/**/*.test.ts", "scripts/**/*.test.ts"] },
+      },
+      {
+        resolve: { alias: kernAliasse },
+        define: { __APP_VERSION__: JSON.stringify("test") },
+        test: {
+          name: "oberflaeche",
+          environment: "jsdom",
+          include: ["src/**/*.test.tsx"],
+          setupFiles: ["src/test/oberflaeche.ts"],
+        },
+      },
+    ],
+    coverage: { provider: "v8", include: ["src/**/*.ts", "src/**/*.tsx"], exclude: ["src/**/*.test.*", "src/test/**", "src/app/main.tsx"] },
+  },
+});

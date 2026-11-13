@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as RPointerEven
 import type { Id } from "../modell/typen";
 import type { Szene } from "../szene/typen";
 import { szeneZuSvg } from "../ausgabe/svg";
+import { useLangDruck } from "./lang-druecken";
 
 const PX_JE_MM = 96 / 25.4;
 
@@ -85,12 +86,22 @@ export function Zeichenflaeche({
     });
   };
 
+  const lang = useLangDruck((ziel, x, y) => {
+    const id = stelleUnter(ziel);
+    if (!id || !onKontext) return;
+    setVerschiebe(undefined);
+    onAuswahl(id, false);
+    onKontext(id, x, y);
+  });
+
   const unten = (e: RPointerEvent) => {
+    lang.unten(e);
     if (e.button !== 0) return;
     const h = huelle.current!;
     setVerschiebe({ x: e.clientX, y: e.clientY, sl: h.scrollLeft, st: h.scrollTop, bewegt: false });
   };
   const bewegen = (e: RPointerEvent) => {
+    lang.bewegen(e);
     if (!verschiebe) return;
     const dx = e.clientX - verschiebe.x, dy = e.clientY - verschiebe.y;
     if (!verschiebe.bewegt && Math.hypot(dx, dy) < 4) return;
@@ -103,6 +114,7 @@ export function Zeichenflaeche({
     h.scrollTop = verschiebe.st - dy;
   };
   const hoch = (e: RPointerEvent) => {
+    lang.abbrechen();
     if (verschiebe && !verschiebe.bewegt) onAuswahl(stelleUnter(e.target), e.ctrlKey || e.metaKey || e.shiftKey);
     setVerschiebe(undefined);
   };
@@ -115,11 +127,12 @@ export function Zeichenflaeche({
       onPointerDown={unten}
       onPointerMove={bewegen}
       onPointerUp={hoch}
-      onPointerCancel={() => setVerschiebe(undefined)}
+      onPointerCancel={() => (lang.abbrechen(), setVerschiebe(undefined))}
       onContextMenu={(e) => {
         const id = stelleUnter(e.target);
         if (id && onKontext) {
           e.preventDefault();
+          lang.abbrechen();
           onAuswahl(id, false);
           onKontext(id, e.clientX, e.clientY);
         }

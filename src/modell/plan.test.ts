@@ -1,7 +1,8 @@
+import { produce } from "immer";
 import { describe, expect, it } from "vitest";
 import { elternVon, loseStellenIds, nachfahren } from "./baum";
 import { dateiLesen, dateiSchreiben, DateiFehler } from "./migration";
-import { neuerPlan, neueStelle, planDuplizieren, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben } from "./plan";
+import { neuerPlan, neueStelle, planDuplizieren, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, zielEineEbeneHoeher } from "./plan";
 import { planPruefen } from "./validierung";
 
 function beispiel() {
@@ -39,6 +40,19 @@ describe("Plan-Befehle", () => {
     expect(plan.loseStellen).toEqual([ea2]);
   });
 
+  it("hängt eine Ebene höher, hinter die bisherige übergeordnete Stelle", () => {
+    const p = neuerPlan();
+    const tel = stelleAnlegen(p, neueStelle({ beschriftung: "TEL" }));
+    const ea1 = stelleAnlegen(p, neueStelle({ beschriftung: "EA 1" }), { unter: tel });
+    const ea2 = stelleAnlegen(p, neueStelle({ beschriftung: "EA 2" }), { unter: tel });
+    const ua = stelleAnlegen(p, neueStelle({ beschriftung: "UA" }), { unter: ea1 });
+    expect(zielEineEbeneHoeher(p, ua)).toEqual({ unter: tel, index: 1 });
+    umhaengen(p, ua, zielEineEbeneHoeher(p, ua)!);
+    expect(p.stellen[tel]!.kinder).toEqual([ea1, ua, ea2]);
+    expect(zielEineEbeneHoeher(p, ea1)).toEqual({ wurzel: true, index: 1 });
+    expect(zielEineEbeneHoeher(p, tel)).toBeUndefined();
+  });
+
   it("verschiebt innerhalb der Geschwister", () => {
     const { plan, tel, ea1, ea2 } = beispiel();
     verschieben(plan, ea1, 1);
@@ -57,6 +71,16 @@ describe("Plan-Befehle", () => {
     stelleLoeschen(plan, tel, true);
     expect(Object.keys(plan.stellen)).toEqual([]);
     expect(plan.wurzeln).toEqual([]);
+  });
+
+  it("dupliziert auch in einem Immer-Entwurf (so ruft der Editor auf)", () => {
+    const p = neuerPlan();
+    const tel = stelleAnlegen(p, neueStelle({ beschriftung: "TEL", kontakte: [{ id: "k1", art: "telefon", wert: "0999 1" }] }));
+    let neu: string | undefined;
+    const q = produce(p, (e) => void (neu = stelleDuplizieren(e as typeof p, tel)));
+    expect(neu).toBeDefined();
+    expect(q.wurzeln).toEqual([tel, neu]);
+    expect(q.stellen[neu!]!.kontakte[0]!.wert).toBe("0999 1");
   });
 
   it("dupliziert Teilbäume mit neuen IDs", () => {

@@ -153,3 +153,67 @@ test("K04/K05: geänderter Stand ist sichtbar, Ausgabe fragt nach neuem Stand, D
   await page.locator(".planliste li", { hasText: "Version 2" }).getByRole("button", { name: /vergleichen/ }).click();
   await expect(page.getByText("Keine Unterschiede in Stellen, Kontakten und Funk.")).toBeVisible();
 });
+
+test("K07/K08: Aktionen und Umhängen ohne Rechtsklick und ohne Ziehen", async ({ page }) => {
+  await vorlage(page, "schadstoffunfall");
+  const zeilen = page.locator(".gliederung .gl-zeile");
+  const vorher = await zeilen.count();
+  const zeile = (text: string) => page.locator(".gliederung .gl-zeile", { hasText: text }).first();
+  const aktionen = page.locator(".stelle-aktionen");
+
+  // Duplizieren und Löschen über sichtbare Knöpfe
+  await zeile("EAL Heros Deichsiel 10").click();
+  await aktionen.getByRole("button", { name: "Duplizieren" }).click();
+  await expect(zeilen).toHaveCount(vorher + 1);
+  await aktionen.getByRole("button", { name: "Löschen…" }).click();
+  await expect(zeilen).toHaveCount(vorher);
+
+  // Umhängen über „Untersteht"
+  await zeile("EAL Heros Musterinsel").click();
+  const untersteht = aktionen.getByLabel("Untersteht");
+  const wert = await untersteht.locator("option", { hasText: "ELO Beispielkreis" }).getAttribute("value");
+  await untersteht.selectOption(wert!);
+  const unter = (eltern: string) => page.locator(".gliederung li", { has: page.locator(":scope > .gl-zeile", { hasText: eltern }) }).locator("ul .gl-zeile", { hasText: "Musterinsel" });
+  await expect(unter("ELO Beispielkreis")).toHaveCount(1);
+  await expect(untersteht.locator("option:checked")).toContainText("ELO Beispielkreis");
+
+  // Eine Ebene höher: neben ELO Beispielkreis unter LK Beispielkreis
+  await aktionen.getByRole("button", { name: "← Eine Ebene höher" }).click();
+  await expect(untersteht.locator("option:checked")).toContainText("LK Beispielkreis");
+  await expect(unter("ELO Beispielkreis")).toHaveCount(0);
+
+  // Rechtsklick in der Gliederung öffnet das Menü; Esc schließt es
+  await zeile("ELO Musterstadt").click({ button: "right" });
+  const menue = page.locator(".kontextmenue");
+  await expect(menue).toBeVisible();
+  await expect(menue.getByRole("menuitem", { name: "Löschen…" })).toBeVisible();
+  await page.mouse.move(5, 5);
+  await expect(menue).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(menue).toHaveCount(0);
+});
+
+test.describe("Tablet", () => {
+  test.use({ hasTouch: true, viewport: { width: 1180, height: 820 } });
+  test("K07: langes Drücken öffnet das Kontextmenü in Gliederung und Zeichnung", async ({ page }) => {
+    await vorlage(page, "schadstoffunfall");
+    const lange = async (ort: import("@playwright/test").Locator) => {
+      const r = (await ort.boundingBox())!;
+      const opt = { pointerType: "touch", isPrimary: true, pointerId: 7, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, button: 0, bubbles: true };
+      await ort.dispatchEvent("pointerdown", opt);
+      await page.waitForTimeout(800);
+      await ort.dispatchEvent("pointerup", opt);
+    };
+    const menue = page.locator(".kontextmenue");
+    await lange(page.locator(".gliederung .gl-zeile", { hasText: "ELO Musterstadt" }).first());
+    await expect(menue).toBeVisible();
+    await expect(page.locator(".gliederung .gl-zeile.gewaehlt")).toContainText("ELO Musterstadt");
+    // Tipp daneben schließt
+    await page.locator(".spalte-rechts").click({ position: { x: 10, y: 10 } });
+    await expect(menue).toHaveCount(0);
+
+    await lange(page.locator('.blatt [data-stelle]').first());
+    await expect(menue).toBeVisible();
+    await expect(menue.getByRole("menuitem", { name: "Kommunikationsskizze erzeugen" })).toBeVisible();
+  });
+});

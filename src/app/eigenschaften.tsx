@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef , type ReactNode } from "react";
 import type { Draft } from "immer";
 import { THW_ORTSVERBAENDE } from "@bos/vokabulare/thw-ov";
 import { dtgAusZeitpunkt, jetzt, zeitpunktAusDtg, zeitpunktLesbar } from "../modell/dtg";
@@ -25,7 +25,7 @@ const LINIEN: Array<{ wert: Linienart; titel: string }> = [
 const BETRIEB_VORSCHLAEGE = THW_ORTSVERBAENDE.map((ov) => `THW OV ${ov.name}`);
 
 /** Eigenschaften einer Stelle. */
-export function StelleEigenschaften({ plan, stelle, ansicht, aendern }: { plan: Plan; stelle: Stelle; ansicht: BaumAnsicht; aendern: Aendern }) {
+export function StelleEigenschaften({ plan, stelle, ansicht, aendern, aktionen }: { plan: Plan; stelle: Stelle; ansicht: BaumAnsicht; aendern: Aendern; aktionen?: ReactNode }) {
   const palette = useRef<HTMLDialogElement>(null);
   const id = stelle.id;
   const setze = <K extends keyof Stelle>(feld: K, wert: Stelle[K]) =>
@@ -40,6 +40,7 @@ export function StelleEigenschaften({ plan, stelle, ansicht, aendern }: { plan: 
   return (
     <div className="eigenschaften">
       <h2 className="eig-titel">{stelleTitel(stelle)}</h2>
+      {aktionen}
       {stelle.typ === "stelle" ? (
         <>
           <div className="eig-zeichen">

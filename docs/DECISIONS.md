@@ -2,6 +2,12 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-13 (Review-Runde 1, Befunde K07–K08)
+
+- **Jede Handlung an einer Stelle ohne Rechtsklick und ohne Ziehen.** Über den Eigenschaften der gewählten Stelle stehen „+ Unterstellte", „Duplizieren", „Skizze erzeugen", „Löschen…" (rot abgesetzt), das Auswahlfeld „Untersteht" (oberste Stelle, lose Stelle oder jede Stelle außer der eigenen und ihren Unterstellten, eingerückt in Baumreihenfolge) und „Nach vorn", „Nach hinten", „Eine Ebene höher" (hinter die bisherige übergeordnete Stelle). Ziehen in der Gliederung bleibt für die Maus; Ziehen per Finger gibt es nicht, das Feld ersetzt es.
+- **Kontextmenü** auch auf Gliederungszeilen und per langem Drücken (550 ms, Finger oder Stift, bis 10 px Bewegung), weil iPadOS dafür kein `contextmenu` auslöst. Es schließt mit Esc oder Tipp daneben, nicht mehr beim Verlassen mit der Maus, und bleibt im sichtbaren Bereich.
+- **Duplizieren** kopiert die Stelle per JSON statt `structuredClone`, weil der Editor in einem Immer-Entwurf (Proxy) arbeitet und `structuredClone` den ablehnt; Duplizieren war dadurch wirkungslos.
+
 ## 2026-11-13 (Review-Runde 1, Befunde K01–K05)
 
 - **Stand belegt den Inhalt.** `Stand.inhalt` hält einen Prüfwert des Inhalts fest; weicht der Plan davon ab, zeigt der Stand-Knopf „geändert". Der Name zählt nicht zum Inhalt, Umbenennen ist keine Änderung. „Neuen Stand anlegen" setzt jetzt zuerst die nächste freie Version (höher als alle eingefrorenen, auch nach Rückgängig) und friert dann genau diesen Inhalt ein; vorher fror es den bisherigen Plan unter der alten Nummer ein, auch wenn er seit dem Ausdruck geändert war. Ist der laufende Stand unverändert und noch nicht eingefroren, wird er ohne neue Nummer festgehalten; das passiert auch beim ersten Export oder Druck einer Version, damit das Ausgegebene später vergleichbar bleibt. Version 1 eines Plans, der vor dem ersten Ausdruck geändert wurde, wird nicht nachträglich rekonstruiert.

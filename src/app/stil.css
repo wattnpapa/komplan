@@ -282,3 +282,11 @@ input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
   .druck-fuss .druck-entwurf { font-weight: 700; font-size: 8pt; }
   .spalte-mitte { padding: 6mm 0 7mm !important; }
 }
+.stelle-aktionen { display: flex; flex-direction: column; gap: var(--r-2); padding: var(--r-2) 0 var(--r-3); margin-bottom: var(--r-3); border-bottom: var(--strich) solid var(--linie); }
+.stelle-aktionen .aktionen-zeile { display: flex; flex-wrap: wrap; gap: var(--r-2); }
+.stelle-aktionen .aktionen-zeile button { flex: 1 1 auto; }
+.stelle-aktionen label.feld { margin: 0; }
+.kontextmenue { max-height: calc(100vh - 16px); overflow: auto; }
+.kontextmenue button.gefahr { color: var(--alarm); }
+/* Langes Drücken öffnet das eigene Menü, nicht die Textauswahl oder das Bildmenü des Browsers. */
+.gl-zeile, .zeichenflaeche .blatt { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

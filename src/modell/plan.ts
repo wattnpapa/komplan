@@ -141,6 +141,16 @@ export function umhaengen(plan: Plan, id: Id, ziel: Ziel): boolean {
   return true;
 }
 
+/** Ziel „eine Ebene höher": hinter die bisherige übergeordnete Stelle. */
+export function zielEineEbeneHoeher(plan: Plan, id: Id): Ziel | undefined {
+  const eltern = elternVon(plan, id);
+  if (!eltern) return undefined;
+  const gross = elternVon(plan, eltern);
+  if (gross) return { unter: gross, index: plan.stellen[gross]!.kinder.indexOf(eltern) + 1 };
+  if (plan.wurzeln.includes(eltern)) return { wurzel: true, index: plan.wurzeln.indexOf(eltern) + 1 };
+  return { lose: true, index: plan.loseStellen.indexOf(eltern) + 1 };
+}
+
 /** Eine Stelle in ihrer Liste um `schritt` Plätze verschieben. */
 export function verschieben(plan: Plan, id: Id, schritt: number): void {
   const liste = listeVon(plan, id);
@@ -218,7 +228,8 @@ export function stelleDuplizieren(plan: Plan, id: Id): Id | undefined {
   if (!quelle) return undefined;
   const kopieren = (sid: Id): Id => {
     const s = plan.stellen[sid]!;
-    const kopie: Stelle = structuredClone(s);
+    // JSON statt structuredClone: in einem Immer-Entwurf ist `s` ein Proxy, den structuredClone ablehnt
+    const kopie: Stelle = JSON.parse(JSON.stringify(s)) as Stelle;
     kopie.id = neueId();
     for (const k of kopie.kontakte) k.id = neueId();
     for (const f of kopie.funk) f.id = neueId();

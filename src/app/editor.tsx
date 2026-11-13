@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore
 import type { Draft } from "immer";
 import { dateiname, herunterladen, jsonExport, pngExport, pptxExport, svgExport } from "../ausgabe/export";
 import { elternVon } from "../modell/baum";
-import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, type Ziel } from "../modell/plan";
+import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, zielEineEbeneHoeher, type Ziel } from "../modell/plan";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan } from "../modell/typen";
 import { planPruefen } from "../modell/validierung";
 import { planAenderungenHoeren, planLadenMitRev, planSpeichern, planSpeichernWenn, staendeVon } from "../speicher/db";
@@ -26,6 +26,8 @@ import { ansichtSzene } from "../layout/ansicht";
 import { SKIZZEN_VORLAGEN, skizzeAusStelle, skizzeAusVorlage, type SkizzenVorlage } from "../modell/skizze";
 import type { SkizzenAnsicht } from "../modell/typen";
 import { StaendeDialog, standAnlegen } from "./staende-dialog";
+import { Kontextmenue } from "./kontextmenue";
+import { StelleAktionen } from "./stelle-aktionen";
 import { TeillinkDialog } from "./teillink";
 
 type BaumAnsicht = FuehrungsorgAnsicht | KomplanAnsicht;
@@ -337,6 +339,27 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
     requestAnimationFrame(() => document.querySelector<HTMLElement>(`.gliederung [data-stelle="${s.id}"]`)?.focus());
   };
 
+  const duplizieren = (id: Id) => {
+    let neu: Id | undefined;
+    aendern((p) => void (neu = stelleDuplizieren(p as Plan, id)));
+    if (neu) setAuswahl([neu]);
+  };
+
+  const skizzeAusStelleErzeugen = (id: Id) => {
+    setAuswahl([id]);
+    let neuId = "";
+    aendern((p) => {
+      const a = skizzeAusStelle(p as Plan, id);
+      (p as Plan).ansichten[a.id] = a;
+      p.ansichtReihenfolge.push(a.id);
+      neuId = a.id;
+    });
+    setSkAuswahl([]);
+    setAnsichtId(neuId);
+  };
+
+  const kontextZu = useCallback(() => setKontext(undefined), []);
+
   const loeschen = async (id: Id) => {
     const s = store.zustand.stellen[id];
     if (!s) return;
@@ -386,10 +409,7 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
     }
     if (strg && e.key.toLowerCase() === "d") {
       e.preventDefault();
-      aendern((p) => {
-        const neu = stelleDuplizieren(p as Plan, aktuell);
-        if (neu) setTimeout(() => setAuswahl([neu]));
-      });
+      duplizieren(aktuell);
       return true;
     }
     if (e.key === "Insert" || (e.key === "Enter" && e.shiftKey)) {
@@ -688,9 +708,10 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
             }}
             onUmhaengen={(id, ziel) => aendern((p) => void umhaengen(p as Plan, id, ziel))}
             onTaste={gliederungTaste}
+            onKontext={(id, x, y) => (waehle(id), setKontext({ id, x, y }))}
           />
           <p className="hinweis tasten-hilfe">
-            Einfg: unterstellte Stelle · Enter: Stelle daneben · Entf: löschen · Strg+D: duplizieren · Alt+↑/↓: verschieben · Ziehen: umhängen
+            Einfg: unterstellte Stelle · Enter: Stelle daneben · Entf: löschen · Strg+D: duplizieren · Alt+↑/↓: verschieben · Ziehen oder „Untersteht“ rechts: umhängen · Rechtsklick oder lange drücken: Menü
           </p>
         </aside>
         <section className="spalte-mitte">
@@ -711,24 +732,16 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
           ) : (
             <Zeichenflaeche szene={szene} auswahl={auswahl} onAuswahl={waehle} onKontext={(id, x, y) => setKontext({ id, x, y })} zoom={zoom} setZoom={setZoom} />
           )}
-          {kontext && (
-            <div className="kontextmenue" role="menu" style={{ left: kontext.x, top: kontext.y }} onMouseLeave={() => setKontext(undefined)}>
-              <button role="menuitem" type="button" onClick={() => (setKontext(undefined), neueStelleUnter({ unter: kontext.id }))}>Unterstellte Stelle anlegen</button>
-              <button role="menuitem" type="button" onClick={() => (setKontext(undefined), aendern((p) => void stelleDuplizieren(p as Plan, kontext.id)))}>Duplizieren</button>
-              <button role="menuitem" type="button" onClick={() => {
-                setKontext(undefined);
-                setAuswahl([kontext.id]);
-                let neuId = "";
-                aendern((p) => {
-                  const a = skizzeAusStelle(p as Plan, kontext.id);
-                  (p as Plan).ansichten[a.id] = a;
-                  p.ansichtReihenfolge.push(a.id);
-                  neuId = a.id;
-                });
-                setAnsichtId(neuId);
-              }}>Kommunikationsskizze erzeugen</button>
-              <button role="menuitem" type="button" onClick={() => (setKontext(undefined), void loeschen(kontext.id))}>Löschen…</button>
-            </div>
+          {kontext && plan.stellen[kontext.id] && (
+            <Kontextmenue x={kontext.x} y={kontext.y} onSchliessen={kontextZu}>
+              <button role="menuitem" type="button" onClick={() => (kontextZu(), neueStelleUnter({ unter: kontext.id }))}>Unterstellte Stelle anlegen</button>
+              <button role="menuitem" type="button" onClick={() => (kontextZu(), duplizieren(kontext.id))}>Duplizieren</button>
+              <button role="menuitem" type="button" onClick={() => (kontextZu(), skizzeAusStelleErzeugen(kontext.id))}>Kommunikationsskizze erzeugen</button>
+              {zielEineEbeneHoeher(plan, kontext.id) && (
+                <button role="menuitem" type="button" onClick={() => (kontextZu(), aendern((p) => void umhaengen(p as Plan, kontext.id, zielEineEbeneHoeher(p as Plan, kontext.id)!)))}>Eine Ebene höher</button>
+              )}
+              <button role="menuitem" type="button" className="gefahr" onClick={() => (kontextZu(), void loeschen(kontext.id))}>Löschen…</button>
+            </Kontextmenue>
           )}
         </section>
         <aside className="spalte-rechts">
@@ -747,7 +760,24 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
               <p className="hinweis">Ausrichten, Verteilen, Gruppieren und Ebenen in der Werkzeugleiste über der Fläche.</p>
             </div>
           ) : gewaehlt ? (
-            <StelleEigenschaften key={gewaehlt.id} plan={plan} stelle={gewaehlt} ansicht={ansicht} aendern={aendern} />
+            <StelleEigenschaften
+              key={gewaehlt.id}
+              plan={plan}
+              stelle={gewaehlt}
+              ansicht={ansicht}
+              aendern={aendern}
+              aktionen={
+                <StelleAktionen
+                  plan={plan}
+                  stelle={gewaehlt}
+                  aendern={aendern}
+                  onUnterstellte={() => neueStelleUnter({ unter: gewaehlt.id })}
+                  onDuplizieren={() => duplizieren(gewaehlt.id)}
+                  onSkizze={() => skizzeAusStelleErzeugen(gewaehlt.id)}
+                  onLoeschen={() => void loeschen(gewaehlt.id)}
+                />
+              }
+            />
           ) : skizze ? (
             <>
               <SkizzenAnsichtEigenschaften ansicht={skizze} aendern={aendern} />

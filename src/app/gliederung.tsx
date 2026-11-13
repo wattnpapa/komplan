@@ -3,6 +3,7 @@ import { istVorfahrOderSelbst } from "../modell/baum";
 import type { Ziel } from "../modell/plan";
 import type { Id, Plan, Stelle } from "../modell/typen";
 import { zeichenKurz } from "../zeichen/katalog";
+import { useLangDruck } from "./lang-druecken";
 import { ZeichenBild } from "./zeichen-bild";
 
 export function stelleTitel(s: Stelle): string {
@@ -26,6 +27,7 @@ export function Gliederung({
   onZuklappen,
   onUmhaengen,
   onTaste,
+  onKontext,
 }: {
   plan: Plan;
   auswahl: Id[];
@@ -34,7 +36,13 @@ export function Gliederung({
   onZuklappen: (id: Id) => void;
   onUmhaengen: (id: Id, ziel: Ziel) => void;
   onTaste: (e: KeyboardEvent, id: Id) => void;
+  /** Rechtsklick oder langes Drücken auf eine Zeile. */
+  onKontext?: (id: Id, x: number, y: number) => void;
 }) {
+  const lang = useLangDruck((ziel, x, y) => {
+    const id = (ziel as Element | null)?.closest?.("[data-stelle]")?.getAttribute("data-stelle");
+    if (id && onKontext) onKontext(id, x, y);
+  });
   const [ziehe, setZiehe] = useState<Id>();
   const [ueber, setUeber] = useState<{ id: Id | "wurzel" | "lose"; lage: Lage }>();
 
@@ -70,6 +78,16 @@ export function Gliederung({
           data-stelle={id}
           onClick={(e) => onAuswahl(id, e.ctrlKey || e.metaKey || e.shiftKey)}
           onKeyDown={(e) => onTaste(e, id)}
+          onContextMenu={(e) => {
+            if (!onKontext) return;
+            e.preventDefault();
+            lang.abbrechen();
+            onKontext(id, e.clientX, e.clientY);
+          }}
+          onPointerDown={lang.unten}
+          onPointerMove={lang.bewegen}
+          onPointerUp={lang.abbrechen}
+          onPointerCancel={lang.abbrechen}
           onDragStart={(e) => {
             setZiehe(id);
             e.dataTransfer.effectAllowed = "move";

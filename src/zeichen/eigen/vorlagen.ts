@@ -7,7 +7,7 @@
  * der rettungsdienstlichen Führung, Einheiten in Organisationsfarbe mit
  * Stärkepunkten. Liste für Upstream-Issues: docs/ZEICHEN-FEHLEN.md.
  *
- * Getrennt von src/zeichen/katalog/ (generiert, Upstream).
+ * Getrennt vom Katalog der Sammlung (Kern @bos/taktische-zeichen/katalog).
  */
 
 import type { Grundform, Organisation } from "../../modell/typen";
@@ -186,11 +186,11 @@ const fs = (id: string, titel: string, t: string, begriffe: string[], extra: Par
 
 export const EIGENE_VORLAGEN: EigeneVorlage[] = [
   fs("fuehrungsstelle", "Führungsstelle (Text frei)", "", ["führungsstelle", "fahne", "frei", "……"], {}, false),
-  fs("elo", "ELO (Führungsstelle)", "ELO", ["elo", "einsatzleitung"]),
+  fs("elo", "Einsatzleitung Ort (ELO)", "ELO", ["elo", "einsatzleitung ort", "einsatzleitung", "örtlich"]),
   fs("luk", "Leitung und Koordinierung (LuK)", "LuK", ["luk", "leitung und koordinierung", "koordinierungsstelle"]),
   fs("luk-thw-ov", "LuK THW, Ortsverband", "LuK", ["luk", "ortsverband", "ov"], { kennung: "THW", untertext: "Ortsverband" }),
   fs("luk-thw-rst", "LuK THW, Regionalstelle", "LuK", ["luk", "regionalstelle", "rst"], { kennung: "THW", untertext: "Regionalstelle" }),
-  fs("bw", "BW (Führungsstelle Bundeswehr)", "BW", ["bw", "bundeswehr"]),
+  fs("bw", "Bundeswehr (BW)", "BW", ["bw", "bundeswehr", "verbindung bundeswehr"]),
   fs("eal-thw", "EAL mit Kennung THW", "EAL", ["eal", "einsatzabschnittsleitung", "thw"], { kennung: "THW" }),
   fs("ueal-thw", "UEAL mit Kennung THW", "UEAL", ["ueal", "unterabschnitt", "thw"], { kennung: "THW" }),
   fs("eal-fw", "EAL mit Kennung FW", "EAL", ["eal", "einsatzabschnittsleitung", "feuerwehr", "fw"], { kennung: "FW", textfarbe: "#000000" }),
@@ -207,7 +207,7 @@ export const EIGENE_VORLAGEN: EigeneVorlage[] = [
   { id: "log-m", titel: "Versorgungsstelle Materialerhaltung (Log-M)", begriffe: ["log-m", "materialerhaltung", "versorgungsstelle"], form: versorgung, vorgabe: { text: "Log-M", kennung: "THW" }, fehltUpstream: true },
   { id: "log-vg", titel: "Versorgungsstelle Verbrauchsgüter (Log-VG)", begriffe: ["log-vg", "verbrauchsgüter", "versorgungsstelle"], form: versorgung, vorgabe: { text: "Log-VG", kennung: "THW" }, fehltUpstream: true },
   { id: "sack-sand", titel: "Sandsackfüllstelle (Sack/Sand)", begriffe: ["sack", "sand", "sandsack", "sandsackfüllplatz", "füllstelle"], form: versorgung, vorgabe: { text: "Sand", farbe: "#C8A165" }, fehltUpstream: true },
-  { id: "puma", titel: "PuMA (Kreis, Text frei)", begriffe: ["puma", "anlaufstelle", "personal", "material"], form: versorgung, vorgabe: { text: "PuMA" }, fehltUpstream: true },
+  fs("puma", "Presse- und Medienarbeit (PuMA)", "PuMA", ["puma", "presse", "medienarbeit", "öffentlichkeitsarbeit", "pressestelle"]),
   { id: "versorgungsstelle", titel: "Versorgungsstelle (Text frei)", begriffe: ["versorgungsstelle", "kreis", "logistik"], form: versorgung, vorgabe: { text: "" }, fehltUpstream: false },
   { id: "raute-lna", titel: "Leitender Notarzt (Raute)", begriffe: ["lna", "leitender notarzt", "rettungsdienst"], form: raute, vorgabe: { text: "LNA" }, fehltUpstream: false },
   { id: "raute-orgl", titel: "Organisatorischer Leiter (Raute)", begriffe: ["orgl", "organisatorischer leiter", "rettungsdienst"], form: raute, vorgabe: { text: "OrgL" }, fehltUpstream: false },

@@ -10,6 +10,8 @@ const kernAliasse = [
   { find: /^@bos\/eeb-format$/, replacement: kernPfad("eeb-format", "index") },
   { find: /^@bos\/vokabulare\/(.*)$/, replacement: kernPfad("bos-vokabulare", "$1") },
   { find: /^@bos\/vokabulare$/, replacement: kernPfad("bos-vokabulare", "index") },
+  { find: /^@bos\/taktische-zeichen\/(.*)$/, replacement: kernPfad("bos-taktische-zeichen", "$1") },
+  { find: /^@bos\/taktische-zeichen$/, replacement: kernPfad("bos-taktische-zeichen", "index") },
 ];
 
 // Zwei Suiten wie in erfassungsbogen: „logik" (node) und „oberflaeche" (jsdom).

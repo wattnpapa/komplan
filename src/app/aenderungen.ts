@@ -28,6 +28,7 @@ export const AENDERUNGEN: Aenderung[] = [
       "Export als PowerPoint mit bearbeitbaren Formen und Texten, Drucken direkt aus dem Browser.",
       "Plan als Link teilen: der ganze Plan steckt im Link, nach einem deutlichen Hinweis auf die enthaltenen Kontaktdaten; wer den Link öffnet, übernimmt eine Kopie.",
       "Hinweisliste mit Sprung zur betroffenen Stelle, Anzeige „offline“ im Kopf, neue Beispiele FwDV 800 und Einsatzübung Simbach (Fb Fü 76, Skizzen FGr FK und ZTr).",
+      "Zeichen ELO, PuMA und BW mit Langform (Einsatzleitung Ort, Presse- und Medienarbeit, Bundeswehr) in Suche und Hilfe; PuMA steht jetzt als Führungsstelle statt als Versorgungsstelle.",
       "Dateinamen von Exporten enthalten keine Umlaute und Sonderzeichen mehr; vorher hieß die Datei in manchen Browsern nur „download“.",
     ],
   },

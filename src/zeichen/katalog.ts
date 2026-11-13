@@ -1,80 +1,25 @@
 /**
- * Zugriff auf die Zeichen: Index (immer geladen, für Suche und Anzeige) und
- * SVG-Quelltexte (je Ordner nachgeladen und danach synchron verfügbar).
+ * Zugriff auf die Zeichen. Der Katalog (Verzeichnis und SVG-Quelltexte der
+ * Sammlung von Jonas Köritz) kommt aus dem geteilten Kern
+ * `@bos/taktische-zeichen/katalog` (Submodul vendor/bos-taktische-zeichen);
+ * hier liegen die eigenen Zeichen und das Zeichnen einer `ZeichenRef`.
  *
  * Der Renderer braucht SVG synchron. Deshalb: vor dem Zeichnen eines Plans
  * `zeichenVorladen(refs)` abwarten; bis dahin zeichnet `zeichenSvg` einen
  * neutralen Platzhalter.
  */
 
-import indexDaten from "./katalog/index.json";
+import { istGeladen, KATALOG, KATALOG_QUELLE, katalogEinspielen, katalogEintrag, katalogSvg, ordnerLaden, zeichenLaden, type KatalogEintrag } from "@bos/taktische-zeichen/katalog";
 import type { Organisation, ZeichenRef } from "../modell/typen";
 import { eigeneVorlage, GRUNDFORMEN, xml } from "./eigen/vorlagen";
 
-export interface KatalogEintrag {
-  schluessel: string;
-  titel: string;
-  ordner: string;
-}
-
-export const KATALOG_QUELLE = {
-  url: indexDaten.quelle,
-  version: indexDaten.version,
-  urheber: indexDaten.urheber,
-  bearbeitet: indexDaten.bearbeitet,
-};
-
-export const KATALOG: KatalogEintrag[] = indexDaten.zeichen.map((z) => ({
-  schluessel: z.s,
-  titel: z.t || z.s.split("/").pop()!.replaceAll("_", " "),
-  ordner: z.s.split("/")[0]!,
-}));
-
-const NACH_SCHLUESSEL = new Map(KATALOG.map((e) => [e.schluessel, e]));
-
-export function katalogEintrag(schluessel: string): KatalogEintrag | undefined {
-  return NACH_SCHLUESSEL.get(schluessel);
-}
-
-type OrdnerLader = () => Promise<{ default: Record<string, string> }>;
-const LADER: Record<string, OrdnerLader> = Object.fromEntries(
-  Object.entries(import.meta.glob<{ default: Record<string, string> }>(["./katalog/*.json", "!./katalog/index.json"])).map(([pfad, lader]) => [
-    pfad.replace("./katalog/", "").replace(".json", ""),
-    lader,
-  ]),
-);
-
-const svgCache = new Map<string, string>();
-const geladeneOrdner = new Map<string, Promise<void>>();
-
-export function ordnerLaden(ordner: string): Promise<void> {
-  let laden = geladeneOrdner.get(ordner);
-  if (!laden) {
-    const lader = LADER[ordner];
-    laden = lader
-      ? lader().then((m) => {
-          for (const [k, v] of Object.entries(m.default)) svgCache.set(k, v);
-        })
-      : Promise.resolve();
-    geladeneOrdner.set(ordner, laden);
-  }
-  return laden;
-}
+export { istGeladen, KATALOG, KATALOG_QUELLE, katalogEinspielen, katalogEintrag, ordnerLaden, type KatalogEintrag };
 
 /** Lädt die Ordner aller genannten Katalogzeichen. */
 export async function zeichenVorladen(refs: Iterable<ZeichenRef | undefined>): Promise<void> {
-  const ordner = new Set<string>();
-  for (const r of refs) if (r?.quelle === "katalog") ordner.add(r.schluessel.split("/")[0]!);
-  await Promise.all([...ordner].map(ordnerLaden));
-}
-
-/** Für Tests und Node-Skripte: Ordner direkt einspielen. */
-export function katalogEinspielen(eintraege: Record<string, string>): void {
-  for (const [k, v] of Object.entries(eintraege)) svgCache.set(k, v);
-}
-
-export function istGeladen(schluessel: string): boolean {
-  return svgCache.has(schluessel);
+  const schluessel: string[] = [];
+  for (const r of refs) if (r?.quelle === "katalog") schluessel.push(r.schluessel);
+  await zeichenLaden(schluessel);
 }
 
 const PLATZHALTER = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><rect x="10" y="64" width="236" height="128" fill="#FFFFFF" stroke="#999999" stroke-width="5" stroke-dasharray="12 8" /></svg>`;
@@ -84,7 +29,7 @@ export function zeichenSvg(ref: ZeichenRef | undefined, organisation?: Organisat
   if (!ref) return PLATZHALTER;
   switch (ref.quelle) {
     case "katalog":
-      return svgCache.get(ref.schluessel) ?? PLATZHALTER;
+      return katalogSvg(ref.schluessel) ?? PLATZHALTER;
     case "eigen": {
       const v = eigeneVorlage(ref.vorlage);
       if (!v) return PLATZHALTER;

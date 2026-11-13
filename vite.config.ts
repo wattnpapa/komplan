@@ -63,6 +63,7 @@ export default defineConfig({
     alias: [
       { find: /^@bos\/vokabulare\/(.*)$/, replacement: kernPfad("bos-vokabulare", "$1") },
       { find: /^@bos\/eeb-format\/(.*)$/, replacement: kernPfad("eeb-format", "$1") },
+      { find: /^@bos\/taktische-zeichen\/(.*)$/, replacement: kernPfad("bos-taktische-zeichen", "$1") },
     ],
   },
   define: {

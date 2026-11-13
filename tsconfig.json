@@ -15,7 +15,9 @@
       "@bos/eeb-format": ["./vendor/eeb-format/src/index.ts"],
       "@bos/eeb-format/*": ["./vendor/eeb-format/src/*.ts"],
       "@bos/vokabulare": ["./vendor/bos-vokabulare/src/index.ts"],
-      "@bos/vokabulare/*": ["./vendor/bos-vokabulare/src/*.ts"]
+      "@bos/vokabulare/*": ["./vendor/bos-vokabulare/src/*.ts"],
+      "@bos/taktische-zeichen": ["./vendor/bos-taktische-zeichen/src/index.ts"],
+      "@bos/taktische-zeichen/*": ["./vendor/bos-taktische-zeichen/src/*.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.mts", "e2e/**/*.ts", "*.config.ts"]

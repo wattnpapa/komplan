@@ -21,9 +21,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test --trace off",
-    "zeichen:holen": "node --import tsx scripts/zeichen-holen.mts",
-    "zeichen:fehlen": "node --import tsx scripts/zeichen-fehlen.mts",
-    "icons": "node --import tsx scripts/icons.mts"
+    "icons": "node --import tsx scripts/icons.mts",
+    "schrift:ttf": "node --import tsx scripts/woff-zu-ttf.mts"
   },
   "dependencies": {
     "@fontsource-variable/archivo": "^5.3.0",

@@ -14,7 +14,7 @@ npm test             # Vitest: logik (node) und oberflaeche (jsdom)
 npm run typecheck
 npm run test:e2e     # Playwright: Ablauf und Bildvergleich der Vorlagen
 npm run build        # dist/, GitHub Pages
-npm run zeichen:holen  # Zeichen aus dem Release der Sammlung neu holen
+npm run schrift:ttf    # Roboto Slab (WOFF aus dem Zeichen-Release) für das PDF zu TTF umpacken
 ```
 
 Der Workflow `.github/workflows/pages.yml` baut bei jedem Push auf `main` und veröffentlicht unter komplan.app (Pages-Quelle „GitHub Actions", Domain über `public/CNAME`).
@@ -31,6 +31,6 @@ Der Workflow `.github/workflows/pages.yml` baut bei jedem Push auf `main` und ve
 
 Code: EUPL-1.2, siehe [LICENSE](LICENSE).
 
-Taktische Zeichen: Sammlung [Taktische-Zeichen](https://github.com/jonas-koeritz/Taktische-Zeichen) von Jonas Köritz, Release v2.0.0, bearbeitet (Schrift ausgelagert, viewBox korrigiert). Laut Projekt fertige Zeichen CC0 1.0, Quellcode CC BY 4.0. Schrift der Zeichen: Roboto Slab, Apache License 2.0. Die eigenen Zeichen in `src/zeichen/eigen/` stehen unter EUPL-1.2.
+Taktische Zeichen kommen über den geteilten Kern `vendor/bos-taktische-zeichen` (Einstiegspunkt `@bos/taktische-zeichen/katalog`) aus der Sammlung [Taktische-Zeichen](https://github.com/jonas-koeritz/Taktische-Zeichen) von Jonas Köritz, Release v2.0.0, bearbeitet (Schrift ausgelagert, viewBox korrigiert). Laut Projekt fertige Zeichen CC0 1.0, Quellcode CC BY 4.0. Schrift der Zeichen: Roboto Slab, Apache License 2.0. Die eigenen Zeichen in `src/zeichen/eigen/` stehen unter EUPL-1.2.
 
 Kein amtliches Angebot des THW oder einer anderen Behörde.

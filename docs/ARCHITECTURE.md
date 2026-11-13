@@ -35,7 +35,7 @@ src/
   ausgabe/     SVG, PNG, PDF (jsPDF), PPTX (pptxgenjs), JSON, Teil-Link, Druck-CSS
   speicher/    IndexedDB: Pläne, Stände, Papierkorb, Einstellungen, Favoriten
   app/         React-Oberfläche (Planliste, Gliederung, Eigenschaften, Zeichenfläche, Dialoge)
-scripts/       zeichen-holen.mts, eigene-zeichen.mts, Icons
+scripts/       woff-zu-ttf.mts (Schrift fürs PDF), icons.mts
 public/        impressum.html, datenschutz.html, manifest, Icons, Schriften
 e2e/           Playwright inkl. Bildvergleich der Vorlagen
 ```
@@ -86,7 +86,7 @@ Kein Auto-Layout. Elemente haben eigene Positionen in mm. Verbinder docken an **
 
 ## 5. Zeichen
 
-- `scripts/zeichen-holen.mts` lädt das Release-Archiv von jonas-koeritz/Taktische-Zeichen in einer festgeschriebenen Version (v2.0.0), wie `bos-taktische-zeichen/scripts/holen.mts`: eingebettete Schrift raus, `viewbox` → `viewBox`, DOCTYPE/Titel raus. Anders als dort werden **alle** Ordner übernommen (Führungsstellen, Einrichtungen, Fernmeldewesen, Personen …), als JSON je Ordner, in der App per `import()` nachgeladen und vom Service Worker vorgehalten.
+- Der Katalog kommt aus dem geteilten Kern `vendor/bos-taktische-zeichen`, Einstiegspunkt `@bos/taktische-zeichen/katalog` (dort `scripts/katalog-holen.mts`): alle Ordner der Sammlung in festgeschriebener Version, eingebettete Schrift raus, `viewbox` → `viewBox`, je Ordner ein per `import()` nachladbares Modul, vom Service Worker vorgehalten. Der Einstiegspunkt ist nicht aus dem `index.ts` des Kerns exportiert, das Bundle von erfassungsbogen bleibt gleich.
 - Die Schrift der Zeichen (Roboto Slab Bold, Apache 2.0) liegt einmal lokal unter `public/schrift/` und ist in SVG per `@font-face`, in PDF per `addFont` eingebunden.
 - Suchindex: Name, Ordner, Organisation, Synonyme aus einer handgepflegten Tabelle (`zeichen/synonyme.ts`, z. B. „Zugtrupp THW" → `THW_Einheiten/Zugtrupp`, „Log-V" → `FGr_Logistik-Verpflegung`).
 - Eigene Zeichen in `src/zeichen/eigen/` als parametrisierte Funktionen (Grundform, Text, Kennung, Stärkepunkte), getrennt vom Generat. Liste der fehlenden Zeichen für Upstream-Issues: `docs/ZEICHEN-FEHLEN.md` (entsteht in M1).

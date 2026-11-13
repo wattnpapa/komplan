@@ -1,7 +1,6 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { EIGENE_VORLAGEN, passendeGroesse } from "./eigen/vorlagen";
-import { KATALOG, katalogEinspielen, svgIdsPraefixen, zeichenSvg } from "./katalog";
+import { KATALOG, ordnerLaden, svgIdsPraefixen, zeichenSvg } from "./katalog";
 import { SYNONYME, zeichenSuchen } from "./suche";
 
 describe("Katalog", () => {
@@ -17,9 +16,9 @@ describe("Katalog", () => {
     for (const s of Object.keys(SYNONYME)) expect(schluessel.has(s), s).toBe(true);
   });
 
-  it("liefert SVG nach dem Einspielen", () => {
-    const daten = JSON.parse(readFileSync(new URL("./katalog/Führungsstellen.json", import.meta.url), "utf8"));
-    katalogEinspielen(daten);
+  it("liefert SVG aus dem Kern-Katalog, sobald der Ordner geladen ist", async () => {
+    expect(zeichenSvg({ quelle: "katalog", schluessel: "Führungsstellen/EAL" })).toContain("stroke-dasharray");
+    await ordnerLaden("Führungsstellen");
     const svg = zeichenSvg({ quelle: "katalog", schluessel: "Führungsstellen/EAL" });
     expect(svg).toContain(">EAL</text>");
     expect(svg).toContain('viewBox="0 0 256 256"');

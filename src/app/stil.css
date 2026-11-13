@@ -212,3 +212,35 @@ input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
 .stand-vorschau { margin-top: var(--r-3); background: #fff; border: var(--strich) solid var(--linie); padding: var(--r-2); }
 .stand-vorschau svg { width: 100%; height: auto; display: block; }
 .planliste li.gewaehlt { background: color-mix(in srgb, var(--auswahl) 10%, transparent); }
+
+/* ---- M3: Kommunikationsskizze ---- */
+.skizzen-bereich { flex: 1 1 auto; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.skizzen-werkzeuge { display: flex; flex-wrap: wrap; gap: var(--r-1) var(--r-3); align-items: center; padding: var(--r-1) var(--r-2); background: var(--flaeche); border-bottom: var(--strich) solid var(--linie); }
+.skizzen-werkzeuge button, .skizzen-werkzeuge select { min-height: 2.25rem; padding: 0.15rem 0.5rem; font-size: var(--t-s); }
+.skizzen-werkzeuge button[aria-pressed="true"] { background: var(--akzent); color: var(--auf-akzent); border-color: var(--akzent); }
+.wz-gruppe { display: inline-flex; flex-wrap: wrap; gap: var(--r-1); align-items: center; padding-right: var(--r-2); border-right: var(--strich) solid var(--linie-fein); }
+.wz-gruppe:last-of-type { border-right: none; }
+.wz-label { display: inline-flex; align-items: center; gap: var(--r-1); font-size: var(--t-xs); font-weight: 600; color: var(--text-2); }
+.wz-label select { max-width: 12rem; }
+.wz-hinweis { font-size: var(--t-xs); color: var(--warn-text); background: var(--warn-fond); padding: 0.15rem 0.5rem; border: var(--strich) solid var(--warn-linie); }
+.farb-punkt { display: inline-block; width: 0.8rem; height: 0.8rem; border: 1px solid #0006; vertical-align: middle; margin-right: 0.2rem; }
+.farb-knopf { gap: 0.15rem; }
+.skizzen-flaeche { touch-action: none; }
+.skizzen-flaeche.platziert .blatt { cursor: crosshair; }
+.skizzen-flaeche .blatt [data-element] { cursor: move; }
+.skizzen-ebene { pointer-events: none; }
+.skizzen-ebene .treffer { fill: none; stroke: transparent; pointer-events: stroke; cursor: pointer; }
+.skizzen-ebene .griff { fill: #fff; stroke: var(--auswahl); pointer-events: all; }
+.skizzen-ebene .griff-nw, .skizzen-ebene .griff-so { cursor: nwse-resize; }
+.skizzen-ebene .griff-no, .skizzen-ebene .griff-sw { cursor: nesw-resize; }
+.skizzen-ebene .griff-n, .skizzen-ebene .griff-s { cursor: ns-resize; }
+.skizzen-ebene .griff-o, .skizzen-ebene .griff-w { cursor: ew-resize; }
+.skizzen-ebene .port { fill: #fff; stroke: #0a8a3a; pointer-events: all; cursor: crosshair; }
+.skizzen-ebene .port:hover { fill: #0a8a3a; }
+.skizzen-ebene .knick { fill: #fff; stroke: var(--auswahl); pointer-events: all; cursor: move; }
+.skizzen-ebene .auswahl-verbinder { fill: none; stroke: var(--auswahl); stroke-opacity: 0.45; }
+.skizzen-ebene .gummiband { fill: color-mix(in srgb, var(--auswahl) 12%, transparent); stroke: var(--auswahl); stroke-dasharray: 1.5 1; }
+.skizzen-ebene .verbinden-vorschau { stroke: #0a8a3a; stroke-dasharray: 2 1; }
+.skizzen-ebene .auswahl-rahmen { stroke-dasharray: none; }
+.skizzen-bereich { position: relative; }
+.skizzen-bereich .wz-hinweis { position: absolute; right: var(--r-3); bottom: var(--r-3); z-index: 5; pointer-events: none; }

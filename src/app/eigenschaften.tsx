@@ -264,7 +264,7 @@ const ORGANISATIONEN: Array<[Organisation, string]> = [
 ];
 
 /** Eigenschaften des Plans und der Ansicht (keine Stelle gewählt). */
-export function PlanEigenschaften({ plan, ansicht, aendern, auswahl }: { plan: Plan; ansicht: BaumAnsicht; aendern: Aendern; auswahl: Id[] }) {
+export function PlanEigenschaften({ plan, ansicht, aendern, auswahl, nurPlan }: { plan: Plan; ansicht: BaumAnsicht; aendern: Aendern; auswahl: Id[]; nurPlan?: boolean }) {
   const dtgFeld = useRef<HTMLInputElement>(null);
   const setzeAnsicht = (f: (a: Draft<BaumAnsicht>) => void, b?: string) => aendern((p) => f(p.ansichten[ansicht.id] as Draft<BaumAnsicht>), b);
 
@@ -338,6 +338,7 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl }: { plan: P
         ))}
       </details>
 
+      {!nurPlan && (<>
       <details className="eig-gruppe" open>
         <summary>Ansicht „{ansicht.name}"</summary>
         <div className="zeile">
@@ -378,6 +379,7 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl }: { plan: P
         </div>
       </details>
 
+      </>)}
       <details className="eig-gruppe">
         <summary>Fußnoten und freie Zeilen ({plan.fussnoten.length})</summary>
         {plan.fussnoten.map((f, i) => (

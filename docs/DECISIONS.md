@@ -2,6 +2,19 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-13 (M3)
+
+- **Skizze als eigene Ansicht im selben Plan.** Stellen-Kästen, Zeichen, NSt-Tabellen und Anschlüsse mit Bezug lesen Funkrufname, Telefon, Fax und Funk aus `Plan.stellen`; die Skizze speichert nur Lage, Größe und Darstellung. Ändert man eine Nummer in der Skizze über „Kontaktdaten dieser Stelle bearbeiten", ändert sie sich in allen Ansichten.
+- **Gegenstellen der Vorlagen sind lose Stellen** ohne Zeichen (weißer Kasten wie im Vordruck). Wer sie ausfüllt, füllt echte Stellen, die man danach in die Führungsorganisation ziehen kann.
+- **Verbinder rechtwinklig** mit 3 mm Stich aus der Seite und Z- bzw. L-Form; ein verschiebbarer Knick (ein Wegpunkt) reicht für die Vorlagen. Ports rasten beim Andocken auf Achtel der Seite ein, damit benachbarte Linien gleich hoch liegen.
+- **Farbe neuer Verbinder „auto"**: Funk (Funk-Anschluss oder 4-m/2-m-Gerät an einem Ende) rot, sonst schwarz; rot/blau/schwarz wählbar (Konvention der Ausbildungsbeispiele: rot Funk, blau Draht). Linienart ist zusätzlich wählbar, damit der Schwarzweißdruck unterscheidbar bleibt.
+- **Detailstufe**: „taktisch" blendet Geräte, NSt-Tabellen, Anschlüsse außer Funk, als technisch markierte Elemente und Tel./Fax in den Kästen aus; Verbinder zu ausgeblendeten Elementen fallen mit weg.
+- **Neue Modellfelder (additiv)**: `SkStelle.leereFunk` (leere Funk-Fahnen der Vorlagen), `SkStelle.inhalt` ("rahmen" für die eigene FüSt, deren Geräte und Tabellen eigene Elemente sind), `SkNstTabelle.gruppen` (vorgegebene Anschlussarten mit Zeilenzahl).
+- **Vorlage Skizze 4 (C OB)**: Der Vordruck hat zwei Teilnehmerspalten 1–10. Die Tabelle hat eine Teilnehmerspalte mit Gruppen „C OB", „AZ 1", „AZ 2" und Leerzeilen; zehn Teilnehmer passen in die Zeilen.
+- **Vorlage Skizze 5**: Der Vordruck überlappt (vier Gegenstellen je Seite plus Platzhalterreihe auf A4). Hier drei je Seite, die Platzhalter unten an einer gestrichelten Sammelschiene im Rahmen „Einheiten auf Marsch".
+- **Bedienung**: Gummiband zum Auswählen, Ansicht verschieben mit Alt+Ziehen oder mittlerer Maustaste (linkes Ziehen auf leerer Fläche ist die Auswahl). Die Werkzeugleiste ändert ihre Höhe nicht mit der Auswahl, damit die Fläche nicht springt.
+- **Zwischenablage** nur innerhalb der App (Elemente samt Verbindern zwischen ihnen), nicht die des Systems.
+
 ## 2026-11-13 (M2)
 
 - **PDF direkt mit jsPDF**, nicht SVG → PDF im Ganzen: Linien, Flächen und Texte entstehen als PDF-Objekte in der Standardschrift Helvetica (nicht eingebettet, metrisch gleich mit dem Layout). Nur die taktischen Zeichen gehen über svg2pdf.js. jsPDF und svg2pdf (ca. 156 kB gz) werden erst beim Export geladen.

@@ -375,6 +375,10 @@ export interface SkStelle extends ElementBasis {
   stelle: Id;
   /** Welche Kontakte/Funkangaben im Kasten stehen. Leer = alle. */
   zeige?: Id[];
+  /** Mindestzahl Funk-Fahnen im Kasten; fehlende bleiben leer zum Ausfüllen (Vorlagen). */
+  leereFunk?: number;
+  /** "rahmen": nur Zeichen, Funkrufname und leerer Kasten; Geräte und Tabellen liegen als eigene Elemente darin (eigene FüSt der Vorlagen). */
+  inhalt?: "voll" | "rahmen";
 }
 
 /** Fünfeck-„Fahne" für einen Anschluss. */
@@ -403,6 +407,12 @@ export interface SkNstTabelle extends ElementBasis {
   spalten: Array<"anschlussart" | "technik" | "nummer" | "teilnehmer">;
   /** Leerzeilen zum Ausfüllen. */
   leerzeilen: number;
+  /**
+   * Vorgegebene Gruppen der Anschlussart-Spalte mit Mindestzahl an Zeilen
+   * (Vorlagen: „C Wähl", „ISDN S0", „Analog a/b" …). Fehlt ein Eintrag mit
+   * dieser Anschlussart, bleiben die Zeilen leer zum Ausfüllen.
+   */
+  gruppen?: Array<{ anschlussart: string; zeilen: number }>;
 }
 
 export interface SkPlatzhalter extends ElementBasis {

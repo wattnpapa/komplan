@@ -15,6 +15,12 @@ import { Gliederung, stelleTitel } from "./gliederung";
 import { PlanStore } from "./plan-store";
 import { Zeichenflaeche } from "./zeichenflaeche";
 import { PdfDialog } from "./pdf-dialog";
+import { SkizzenFlaeche, type Platzierer } from "./skizzen-flaeche";
+import { SkizzenWerkzeuge } from "./skizzen-werkzeuge";
+import { SkizzenAnsichtEigenschaften, SkizzenElementEigenschaften } from "./skizzen-eigenschaften";
+import { skizzeSzene } from "../layout/skizze";
+import { SKIZZEN_VORLAGEN, skizzeAusStelle, skizzeAusVorlage, type SkizzenVorlage } from "../modell/skizze";
+import type { SkizzenAnsicht } from "../modell/typen";
 import { StaendeDialog } from "./staende-dialog";
 
 type BaumAnsicht = FuehrungsorgAnsicht | KomplanAnsicht;
@@ -64,11 +70,30 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const [ansichtId, setAnsichtId] = useState<Id>();
   const pdfDialog = useRef<HTMLDialogElement>(null);
   const staendeDialog = useRef<HTMLDialogElement>(null);
-  const baumAnsichten = plan.ansichtReihenfolge.filter((a) => plan.ansichten[a] && plan.ansichten[a]!.typ !== "skizze");
-  const ansicht = useMemo(() => {
-    const id = ansichtId && baumAnsichten.includes(ansichtId) ? ansichtId : baumAnsichten[0];
-    return plan.ansichten[id!] as BaumAnsicht;
-  }, [plan, ansichtId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const alleAnsichten = plan.ansichtReihenfolge.filter((a) => plan.ansichten[a]);
+  const baumAnsichten = alleAnsichten.filter((a) => plan.ansichten[a]!.typ !== "skizze");
+  const aktiveAnsicht = useMemo(() => plan.ansichten[ansichtId && alleAnsichten.includes(ansichtId) ? ansichtId : alleAnsichten[0]!]!, [plan, ansichtId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const skizze = aktiveAnsicht.typ === "skizze" ? aktiveAnsicht : undefined;
+  /** Baum-Ansicht für Stellen-Eigenschaften (in der Skizze: die erste Baum-Ansicht). */
+  const ansicht = useMemo(() => (aktiveAnsicht.typ !== "skizze" ? aktiveAnsicht : (plan.ansichten[baumAnsichten[0]!] as BaumAnsicht)), [plan, aktiveAnsicht]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [skAuswahl, setSkAuswahl] = useState<Id[]>([]);
+  const [platzierer, setPlatzierer] = useState<Platzierer>();
+  const [verbinderFarbe, setVerbinderFarbe] = useState("");
+  const [skizzenMenue, setSkizzenMenue] = useState(false);
+
+  const skizzeAnlegen = (vorlage: SkizzenVorlage | "aus-stelle") => {
+    setSkizzenMenue(false);
+    let neuId = "";
+    aendern((p) => {
+      const pl = p as Plan;
+      const a = vorlage === "aus-stelle" ? skizzeAusStelle(pl, auswahl[0]!) : skizzeAusVorlage(pl, vorlage, auswahl[0]);
+      pl.ansichten[a.id] = a;
+      pl.ansichtReihenfolge.push(a.id);
+      neuId = a.id;
+    });
+    setSkAuswahl([]);
+    setAnsichtId(neuId);
+  };
 
   const ansichtAnlegen = (typ: "fuehrungsorganisation" | "kommunikationsplan") => {
     const vorlage = { knoten: structuredClone(ansicht.knoten), hervorhebungen: structuredClone(ansicht.hervorhebungen), abstandStandard: { ...ansicht.abstandStandard } };
@@ -86,7 +111,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
     if (name) aendern((p) => void (p.ansichten[id]!.name = name));
   };
   const ansichtLoeschen = async (id: Id) => {
-    if (baumAnsichten.length < 2) return;
+    if (alleAnsichten.length < 2 || (plan.ansichten[id]!.typ !== "skizze" && baumAnsichten.length < 2)) return;
     if (!(await bestaetigen(`Ansicht „${plan.ansichten[id]!.name}" löschen? Die Stellen und ihre Kontaktdaten bleiben erhalten.`, "Ansicht löschen"))) return;
     aendern((p) => {
       delete p.ansichten[id];
@@ -98,16 +123,31 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const aendern = useCallback((rezept: (p: Draft<Plan>) => void, buendel?: string) => store.aendern(rezept, buendel), [store]);
 
   // Zeichen der Stellen nachladen, dann neu zeichnen
-  const zeichenSchluessel = useMemo(() => Object.values(plan.stellen).map((s) => (s.zeichen?.quelle === "katalog" ? s.zeichen.schluessel : "")).join("|"), [plan]);
+  const alleZeichen = (p: Plan) => [
+    ...Object.values(p.stellen).map((s) => s.zeichen),
+    ...Object.values(p.ansichten).flatMap((a) => (a.typ === "skizze" ? Object.values(a.elemente).map((e) => (e.art === "zeichen" ? e.zeichen : undefined)) : [])),
+  ];
+  const zeichenSchluessel = useMemo(() => alleZeichen(plan).map((z) => (z?.quelle === "katalog" ? z.schluessel : "")).join("|"), [plan]);
   useEffect(() => {
     let aktiv = true;
-    void zeichenVorladen(Object.values(store.zustand.stellen).map((s) => s.zeichen)).then(() => aktiv && setZeichenBereit((n) => n + 1));
+    void zeichenVorladen(alleZeichen(store.zustand)).then(() => aktiv && setZeichenBereit((n) => n + 1));
     return () => {
       aktiv = false;
     };
   }, [zeichenSchluessel, store]);
 
-  const szene = useMemo(() => fuehrungsorgSzene(plan, ansicht, { titel: ansicht.kopfleiste && ansicht.typ === "fuehrungsorganisation" }), [plan, ansicht, zeichenBereit]); // eslint-disable-line react-hooks/exhaustive-deps
+  const szene = useMemo(
+    () => (skizze ? skizzeSzene(plan, skizze) : fuehrungsorgSzene(plan, ansicht, { titel: ansicht.kopfleiste && ansicht.typ === "fuehrungsorganisation" })),
+    [plan, ansicht, skizze, zeichenBereit], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+  // Elemente, die es nicht mehr gibt (Undo, Löschen), aus der Skizzen-Auswahl nehmen
+  useEffect(() => {
+    if (!skizze) return;
+    setSkAuswahl((a) => {
+      const neu = a.filter((id) => skizze.elemente[id]);
+      return neu.length === a.length ? a : neu;
+    });
+  }, [skizze]);
   const hinweise = useMemo(() => planPruefen(plan).filter((h) => h.stufe !== "info"), [plan]);
 
   // Autosave
@@ -197,7 +237,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
       store.wiederholen();
       return true;
     }
-    if (inFeld) return false;
+    if (inFeld || skizze) return false;
     const aktuell = id ?? auswahl[0];
     if (!aktuell) return false;
     if (e.key === "Delete" || e.key === "Backspace") {
@@ -268,8 +308,8 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const exportieren = async (art: "svg" | "png" | "png-transparent" | "json") => {
     setExportOffen(false);
     try {
-      if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg", ansicht.name));
-      else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(szene, 3, art === "png" ? "#ffffff" : undefined), dateiname(plan, "png", ansicht.name));
+      if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg", aktiveAnsicht.name));
+      else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(szene, 3, art === "png" ? "#ffffff" : undefined), dateiname(plan, "png", aktiveAnsicht.name));
       else herunterladen(jsonExport(plan, await staendeVon(plan.id)), dateiname(plan, "json"));
       return;
     } catch (e) {
@@ -355,15 +395,15 @@ function EditorGeladen({ store }: { store: PlanStore }) {
       </div>
 
       <div className="ansichten-leiste" role="tablist" aria-label="Ansichten">
-        {baumAnsichten.map((id) => {
+        {alleAnsichten.map((id) => {
           const a = plan.ansichten[id]!;
-          const aktiv = id === ansicht.id;
+          const aktiv = id === aktiveAnsicht.id;
           return (
             <span key={id} className={`ansicht-reiter ${aktiv ? "aktiv" : ""}`}>
-              <button type="button" role="tab" aria-selected={aktiv} onClick={() => setAnsichtId(id)} onDoubleClick={() => ansichtUmbenennen(id)} title="Doppelklick: umbenennen">
-                <span className="ansicht-art">{a.typ === "kommunikationsplan" ? "Komplan" : "FüOrg"}</span> {a.name}
+              <button type="button" role="tab" aria-selected={aktiv} onClick={() => (setAnsichtId(id), setSkAuswahl([]), setPlatzierer(undefined))} onDoubleClick={() => ansichtUmbenennen(id)} title="Doppelklick: umbenennen">
+                <span className="ansicht-art">{a.typ === "kommunikationsplan" ? "Komplan" : a.typ === "skizze" ? "Skizze" : "FüOrg"}</span> {a.name}
               </button>
-              {aktiv && baumAnsichten.length > 1 && (
+              {aktiv && alleAnsichten.length > 1 && (a.typ === "skizze" || baumAnsichten.length > 1) && (
                 <button type="button" className="ansicht-weg" aria-label={`Ansicht ${a.name} löschen`} onClick={() => void ansichtLoeschen(id)}>×</button>
               )}
             </span>
@@ -371,6 +411,19 @@ function EditorGeladen({ store }: { store: PlanStore }) {
         })}
         <button type="button" className="ansicht-neu" onClick={() => ansichtAnlegen("kommunikationsplan")}>+ Kommunikationsplan</button>
         <button type="button" className="ansicht-neu" onClick={() => ansichtAnlegen("fuehrungsorganisation")}>+ Führungsorganisation</button>
+        <span className="menue">
+          <button type="button" className="ansicht-neu" aria-expanded={skizzenMenue} onClick={() => setSkizzenMenue(!skizzenMenue)}>+ Kommunikationsskizze ▾</button>
+          {skizzenMenue && (
+            <div className="menue-liste" role="menu">
+              <button role="menuitem" type="button" disabled={auswahl.length !== 1} onClick={() => skizzeAnlegen("aus-stelle")} title="Gewählte Stelle mittig, übergeordnete links, unterstellte rechts">
+                Aus gewählter Stelle erzeugen{auswahl.length === 1 && plan.stellen[auswahl[0]!] ? ` (${stelleTitel(plan.stellen[auswahl[0]!]!)})` : " (erst eine Stelle wählen)"}
+              </button>
+              {SKIZZEN_VORLAGEN.map((v) => (
+                <button key={v.id} role="menuitem" type="button" onClick={() => skizzeAnlegen(v.id)} title={v.beschreibung}>{v.titel}</button>
+              ))}
+            </div>
+          )}
+        </span>
       </div>
 
       <div className="editor-spalten">
@@ -394,24 +447,62 @@ function EditorGeladen({ store }: { store: PlanStore }) {
           </p>
         </aside>
         <section className="spalte-mitte">
-          <Zeichenflaeche szene={szene} auswahl={auswahl} onAuswahl={waehle} onKontext={(id, x, y) => setKontext({ id, x, y })} zoom={zoom} setZoom={setZoom} />
+          {skizze ? (
+            <div className="skizzen-bereich">
+              <SkizzenWerkzeuge plan={plan} ansicht={skizze} aendern={aendern} auswahl={skAuswahl} setAuswahl={setSkAuswahl} platzierer={platzierer} setPlatzierer={setPlatzierer} verbinderFarbe={verbinderFarbe} setVerbinderFarbe={setVerbinderFarbe} />
+              <SkizzenFlaeche plan={plan} ansicht={skizze} szene={szene} aendern={aendern} auswahl={skAuswahl} setAuswahl={(ids) => (setSkAuswahl(ids), ids.length && setAuswahl([]))} zoom={zoom} setZoom={setZoom} platzierer={platzierer} setPlatzierer={setPlatzierer} verbinderFarbe={verbinderFarbe} />
+            </div>
+          ) : (
+            <Zeichenflaeche szene={szene} auswahl={auswahl} onAuswahl={waehle} onKontext={(id, x, y) => setKontext({ id, x, y })} zoom={zoom} setZoom={setZoom} />
+          )}
           {kontext && (
             <div className="kontextmenue" role="menu" style={{ left: kontext.x, top: kontext.y }} onMouseLeave={() => setKontext(undefined)}>
               <button role="menuitem" type="button" onClick={() => (setKontext(undefined), neueStelleUnter({ unter: kontext.id }))}>Unterstellte Stelle anlegen</button>
               <button role="menuitem" type="button" onClick={() => (setKontext(undefined), aendern((p) => void stelleDuplizieren(p as Plan, kontext.id)))}>Duplizieren</button>
+              <button role="menuitem" type="button" onClick={() => {
+                setKontext(undefined);
+                setAuswahl([kontext.id]);
+                let neuId = "";
+                aendern((p) => {
+                  const a = skizzeAusStelle(p as Plan, kontext.id);
+                  (p as Plan).ansichten[a.id] = a;
+                  p.ansichtReihenfolge.push(a.id);
+                  neuId = a.id;
+                });
+                setAnsichtId(neuId);
+              }}>Kommunikationsskizze erzeugen</button>
               <button role="menuitem" type="button" onClick={() => (setKontext(undefined), void loeschen(kontext.id))}>Löschen…</button>
             </div>
           )}
         </section>
         <aside className="spalte-rechts">
-          {gewaehlt ? (
+          {skizze && skAuswahl.length === 1 && skizze.elemente[skAuswahl[0]!] ? (
+            <SkizzenElementEigenschaften
+              key={skAuswahl[0]}
+              plan={plan}
+              ansicht={skizze}
+              element={skizze.elemente[skAuswahl[0]!]!}
+              aendern={aendern}
+              onStelle={(id) => (setSkAuswahl([]), setAuswahl([id]))}
+            />
+          ) : skizze && skAuswahl.length > 1 ? (
+            <div className="eigenschaften">
+              <h2 className="eig-titel">{skAuswahl.length} Elemente gewählt</h2>
+              <p className="hinweis">Ausrichten, Verteilen, Gruppieren und Ebenen in der Werkzeugleiste über der Fläche.</p>
+            </div>
+          ) : gewaehlt ? (
             <StelleEigenschaften key={gewaehlt.id} plan={plan} stelle={gewaehlt} ansicht={ansicht} aendern={aendern} />
+          ) : skizze ? (
+            <>
+              <SkizzenAnsichtEigenschaften ansicht={skizze} aendern={aendern} />
+              <PlanEigenschaften plan={plan} ansicht={ansicht} aendern={aendern} auswahl={auswahl} nurPlan />
+            </>
           ) : (
             <PlanEigenschaften plan={plan} ansicht={ansicht} aendern={aendern} auswahl={auswahl} />
           )}
         </aside>
       </div>
-      <PdfDialog dialogRef={pdfDialog} plan={plan} ansicht={ansicht} szene={szene} />
+      <PdfDialog dialogRef={pdfDialog} plan={plan} ansicht={skizze ?? ansicht} szene={szene} />
       <StaendeDialog dialogRef={staendeDialog} store={store} plan={plan} />
     </div>
   );

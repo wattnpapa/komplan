@@ -170,7 +170,7 @@ export function Start() {
       )}
 
       <Dialog titel="Neuer Plan" dialogRef={neuDialog} klasse="dialog-breit">
-        {(["Leer", "Führungsorganisation", "Beispiele"] as const).map((g) => (
+        {(["Leer", "Führungsorganisation", "Kommunikationsskizze", "Beispiele"] as const).map((g) => (
           <section key={g}>
             <h3>{g}</h3>
             <ul className="vorlagenliste">
@@ -185,7 +185,7 @@ export function Start() {
             </ul>
           </section>
         ))}
-        <p className="hinweis">Alle Beispiele enthalten erfundene Namen und Nummern. Weitere Vorlagen (Fb Fü 76, Fb Fü 77, FwDV 800) folgen mit den Plan- und Skizzenansichten.</p>
+        <p className="hinweis">Alle Beispiele enthalten erfundene Namen und Nummern. Fb Fü 76 und FwDV 800 als Formularansicht folgen.</p>
       </Dialog>
     </div>
   );

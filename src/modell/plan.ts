@@ -165,19 +165,43 @@ export function stelleLoeschen(plan: Plan, id: Id, mitTeilbaum = false): Id[] {
     const i = liste.indexOf(id);
     liste.splice(i, 1, ...(mitTeilbaum ? [] : stelle.kinder));
   }
-  for (const w of weg) delete plan.stellen[w];
   const wegSet = new Set(weg);
+  for (const ansicht of Object.values(plan.ansichten)) if (ansicht.typ === "skizze") ansichtAufraeumen(ansicht, wegSet, plan);
+  for (const w of weg) delete plan.stellen[w];
   plan.wurzeln = plan.wurzeln.filter((x) => !wegSet.has(x));
   plan.loseStellen = plan.loseStellen.filter((x) => !wegSet.has(x));
   for (const [vid, v] of Object.entries(plan.verbindungen)) {
     if (wegSet.has(v.von) || wegSet.has(v.nach)) delete plan.verbindungen[vid];
   }
-  for (const ansicht of Object.values(plan.ansichten)) ansichtAufraeumen(ansicht, wegSet);
+  for (const ansicht of Object.values(plan.ansichten)) if (ansicht.typ !== "skizze") ansichtAufraeumen(ansicht, wegSet);
   return weg;
 }
 
-function ansichtAufraeumen(ansicht: Ansicht, weg: Set<Id>): void {
-  if (ansicht.typ === "skizze") return; // Skizzen ab M3
+function ansichtAufraeumen(ansicht: Ansicht, weg: Set<Id>, plan?: Plan): void {
+  if (ansicht.typ === "skizze") {
+    // Kästen, Zeichen und Tabellen der Stelle fallen weg (samt Verbindern);
+    // Anschlüsse behalten den letzten Wert als freien Text.
+    const raus: Id[] = [];
+    for (const e of Object.values(ansicht.elemente)) {
+      if ((e.art === "stelle" || e.art === "nst-tabelle") && weg.has(e.stelle)) raus.push(e.id);
+      if (e.art === "zeichen" && e.stelle && weg.has(e.stelle)) raus.push(e.id);
+      if (e.art === "anschluss" && e.bezug && weg.has(e.bezug.stelle)) {
+        const s = plan?.stellen[e.bezug.stelle];
+        const k = s?.kontakte.find((x) => x.id === e.bezug!.eintrag);
+        const f = s?.funk.find((x) => x.id === e.bezug!.eintrag);
+        e.text = k?.wert ?? (f ? (f.art === "digital" ? f.rufgruppe : `${f.kanal} ${f.betriebsart}`) : e.text);
+        delete e.bezug;
+      }
+    }
+    const rausSet = new Set(raus);
+    for (const e of Object.values(ansicht.elemente)) {
+      if (e.art === "verbinder" && [e.von, e.nach].some((p) => "element" in p && rausSet.has(p.element))) rausSet.add(e.id);
+    }
+    for (const id of rausSet) delete ansicht.elemente[id];
+    ansicht.reihenfolge = ansicht.reihenfolge.filter((id) => !rausSet.has(id));
+    if (ansicht.fokus && weg.has(ansicht.fokus)) delete ansicht.fokus;
+    return;
+  }
   for (const id of weg) delete ansicht.knoten[id];
   if (ansicht.wurzel && weg.has(ansicht.wurzel)) delete ansicht.wurzel;
   for (const h of ansicht.hervorhebungen) h.stellen = h.stellen.filter((s) => !weg.has(s));

@@ -6,7 +6,7 @@
 import type { Id, Plan } from "./typen";
 
 export interface Hinweis {
-  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig";
+  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist";
   stufe: "fehler" | "warnung" | "info";
   text: string;
   stelle?: Id;
@@ -79,6 +79,29 @@ export function planPruefen(plan: Plan): Hinweis[] {
     for (const [schl, ids] of gruppen) {
       if (ids.length > 1) {
         hinweise.push({ regel: "rufgruppe-doppelt", stufe: "warnung", text: `Rufgruppe ${schl.split(":")[1]} wird unter ${name(s.id)} von ${ids.map(name).join(", ")} zugleich geführt.`, stelle: ids[0] });
+      }
+    }
+  }
+  // Skizzen: verwaiste Verweise und Elemente ohne Verbinder
+  for (const a of Object.values(plan.ansichten)) {
+    if (a.typ !== "skizze") continue;
+    const verbunden = new Set<Id>();
+    for (const e of Object.values(a.elemente)) {
+      if (e.art !== "verbinder") continue;
+      for (const p of [e.von, e.nach]) {
+        if (!("element" in p)) continue;
+        if (!a.elemente[p.element]) hinweise.push({ regel: "skizze-verwaist", stufe: "fehler", text: `${a.name}: Verbinder zeigt auf ein gelöschtes Element.` });
+        verbunden.add(p.element);
+      }
+    }
+    for (const e of Object.values(a.elemente)) {
+      if ((e.art === "stelle" || e.art === "nst-tabelle") && !plan.stellen[e.stelle]) hinweise.push({ regel: "skizze-verwaist", stufe: "fehler", text: `${a.name}: Element verweist auf eine gelöschte Stelle.` });
+      if (e.art === "anschluss" && e.bezug) {
+        const s = plan.stellen[e.bezug.stelle];
+        if (!s || ![...s.kontakte, ...s.funk].some((x) => x.id === e.bezug!.eintrag)) hinweise.push({ regel: "skizze-verwaist", stufe: "fehler", text: `${a.name}: Anschluss verweist auf einen gelöschten Kontakt.` });
+      }
+      if ((e.art === "anschluss" || e.art === "geraet" || e.art === "stelle" || e.art === "zeichen") && !verbunden.has(e.id)) {
+        hinweise.push({ regel: "skizze-unverbunden", stufe: "info", text: `${a.name}: ${e.art === "stelle" && plan.stellen[e.stelle] ? name(e.stelle) : e.art} ohne Verbindung.`, stelle: e.art === "stelle" ? e.stelle : undefined });
       }
     }
   }

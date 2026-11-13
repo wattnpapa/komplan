@@ -6,6 +6,7 @@
 
 import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neuerPlan, neueStelle, stelleAnlegen } from "./plan";
 import { neueId } from "./id";
+import { SKIZZEN_VORLAGEN, skizzeAusVorlage, type SkizzenVorlage } from "./skizze";
 import type { Funkangabe, Id, Kontakt, KontaktArt, Plan, Stelle, ZeichenRef } from "./typen";
 
 const k = (art: KontaktArt, wert: string, extra: Partial<Kontakt> = {}): Kontakt => ({ id: neueId(), art, wert, ...extra });
@@ -18,7 +19,7 @@ export interface Vorlage {
   id: string;
   titel: string;
   beschreibung: string;
-  gruppe: "Leer" | "Führungsorganisation" | "Beispiele";
+  gruppe: "Leer" | "Führungsorganisation" | "Kommunikationsskizze" | "Beispiele";
   erzeugen: (zeit?: string) => Plan;
 }
 
@@ -33,6 +34,14 @@ function ansicht(plan: Plan) {
   return a;
 }
 
+function skizzenPlan(zeit: string | undefined, v: SkizzenVorlage): Plan {
+  const plan = neuerPlan({ name: SKIZZEN_VORLAGEN.find((x) => x.id === v)!.titel, zeit });
+  const a = skizzeAusVorlage(plan, v);
+  plan.ansichten[a.id] = a;
+  plan.ansichtReihenfolge.unshift(a.id);
+  return plan;
+}
+
 export const VORLAGEN: Vorlage[] = [
   {
     id: "leer",
@@ -41,6 +50,13 @@ export const VORLAGEN: Vorlage[] = [
     gruppe: "Leer",
     erzeugen: (zeit) => neuerPlan({ name: "Neuer Plan", zeit }),
   },
+  ...(["skizze-1", "skizze-2", "skizze-3", "skizze-4", "skizze-5"] as const).map((v) => ({
+    id: `fbfue77-${v.slice(-1)}`,
+    titel: SKIZZEN_VORLAGEN.find((x) => x.id === v)!.titel,
+    beschreibung: SKIZZEN_VORLAGEN.find((x) => x.id === v)!.beschreibung,
+    gruppe: "Kommunikationsskizze" as const,
+    erzeugen: (zeit?: string) => skizzenPlan(zeit, v),
+  })),
   {
     id: "dv1101-gruppe",
     titel: "Einsatz einer Gruppe (DV 1-101)",

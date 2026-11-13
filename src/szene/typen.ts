@@ -9,7 +9,9 @@ import type { Id, Linienart, ZeichenRef } from "../modell/typen";
 /** Woher ein Element stammt: für Auswahl, Klick und Kontextmenü. */
 export interface Herkunft {
   stelle?: Id;
-  rolle?: "knoten" | "beschriftung" | "kontakt" | "unterstellung" | "verbindung" | "hervorhebung" | "kopf" | "einklapp" | "fussnote";
+  /** Skizzenelement (Fb Fü 77). */
+  element?: Id;
+  rolle?: "knoten" | "beschriftung" | "kontakt" | "unterstellung" | "verbindung" | "hervorhebung" | "kopf" | "einklapp" | "fussnote" | "skizze";
 }
 
 interface Basis {

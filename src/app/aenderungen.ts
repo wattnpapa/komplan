@@ -21,6 +21,9 @@ export const AENDERUNGEN: Aenderung[] = [
       "Mehrere Ansichten je Plan (Führungsorganisation und Kommunikationsplan) auf denselben Daten, mit Kopfleiste nach Fb Fü, Fußnoten und eigenem Logo.",
       "PDF in A4 oder A3, quer oder hoch, auf eine Seite eingepasst oder auf mehrere Seiten geteilt, mit Stand, Version und Einstufungsvermerk.",
       "Stände: einen Stand einfrieren, frühere Stände ansehen, mit dem aktuellen vergleichen oder als Kopie öffnen.",
+      "Kommunikationsskizze nach Fb Fü 77 als freie Zeichenfläche: Stellen-Kästen, Anschluss-Fahnen, Geräte, NSt-Tabelle, Platzhalter, Rahmen und Verbinder, die beim Verschieben an den Elementen hängen bleiben.",
+      "Skizze aus einer Stelle erzeugen (Rechtsklick im Plan): eigene Stelle mittig, übergeordnete links, unterstellte rechts oder unten, mit den Kontaktdaten aus dem Plan.",
+      "Die fünf Vorlagen Kommunikationsskizze 1 bis 5 des THW als Startvorlagen, umschaltbar zwischen taktischer und technischer Skizze.",
     ],
   },
 ];

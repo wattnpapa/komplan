@@ -35,6 +35,7 @@ function herkunftAttr(e: Element, an: boolean): string {
   if (!an || !e.herkunft) return "";
   let s = "";
   if (e.herkunft.stelle) s += ` data-stelle="${xml(e.herkunft.stelle)}"`;
+  if (e.herkunft.element) s += ` data-element="${xml(e.herkunft.element)}"`;
   if (e.herkunft.rolle) s += ` data-rolle="${e.herkunft.rolle}"`;
   return s;
 }

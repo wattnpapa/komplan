@@ -13,6 +13,7 @@ Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 - **Dateinamen** nur noch aus ASCII-Buchstaben, Ziffern und `._-`; Umlaute werden umschrieben. Chromium hat Namen mit Sonderzeichen verworfen.
 - **Offline**: Der Service Worker hält jetzt auch die TTF-Schrift (PDF) und die Lizenztexte vor; im Kopf steht „offline", solange das Gerät kein Netz hat. Ein E2E-Test lädt die App ohne Netz neu.
 - **Drucken** über den Browser: nur das Blatt, A4 quer, ohne Bedienelemente.
+- **`image-size` per `overrides` auf ^2.1.0**: pptxgenjs 4.0.1 verlangt 1.x mit einer DoS-Lücke (GHSA-5p2g-fcmc-qvqq, GHSA-w3rx-r6r6-pgpr). Im Browser-Bundle von pptxgenjs wird das Paket nicht geladen; der Override hält nur `npm audit` sauber und kann entfallen, sobald pptxgenjs nachzieht.
 
 ## 2026-11-13 (M3)
 

@@ -164,6 +164,8 @@ export interface KnotenLayout {
   kinder?: "horizontal" | "vertikal";
   /** Abstand zu den Kindern in mm (Standard aus der Ansicht). */
   abstand?: number;
+  /** Zusätzlicher senkrechter Versatz dieser Stelle unter der Sammelschiene in mm (DV 1-101: EAL unter der Einsatzleitung). */
+  versatz?: number;
 }
 
 // ────────────────────────────── Erreichbarkeiten ───────────────────────────
@@ -452,7 +454,10 @@ export interface Bild {
   hoehe: number;
 }
 
-/** Freie Elemente in Baum-Ansichten (nummerierte Pfeile, Text). Position relativ zum Blatt. */
+/**
+ * Freie Elemente in Baum-Ansichten (nummerierte Pfeile, Text). Position relativ
+ * zum Blatt oder, mit `bezug`, relativ zur Mitte unter dieser Stelle.
+ */
 export type Freielement =
-  | ({ art: "text"; id: Id; text: string; groesse: number } & Rahmen)
-  | ({ art: "pfeil"; id: Id; nummer?: string; richtung: "unten" | "oben" | "links" | "rechts" } & Rahmen);
+  | ({ art: "text"; id: Id; text: string; groesse: number; bezug?: Id } & Rahmen)
+  | ({ art: "pfeil"; id: Id; nummer?: string; richtung: "unten" | "oben" | "links" | "rechts"; farbe?: string; bezug?: Id } & Rahmen);

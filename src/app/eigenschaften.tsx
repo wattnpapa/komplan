@@ -153,6 +153,19 @@ export function StelleEigenschaften({ plan, stelle, ansicht, aendern }: { plan: 
                 ))}
               </select>
             </label>
+            {stelle.anbindung.lage === "unten" && (
+              <label className="feld schmal">
+                Tiefer setzen (mm)
+                <input
+                  type="number"
+                  min={0}
+                  max={120}
+                  value={stelle.layout?.versatz ?? ""}
+                  placeholder="0"
+                  onChange={(e) => aendern((p) => void (p.stellen[id]!.layout = { ...p.stellen[id]!.layout, versatz: e.target.value ? Number(e.target.value) : undefined }), `${id}.versatz`)}
+                />
+              </label>
+            )}
           </>
         ) : (
           <p className="hinweis">Oberste Stelle.</p>

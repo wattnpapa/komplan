@@ -39,6 +39,8 @@ export interface LKnoten {
   /** Abstände zu den Kindern. */
   abstandX: number;
   abstandY: number;
+  /** Zusätzlicher Versatz nach unten gegenüber den Geschwistern. */
+  versatz?: number;
 }
 
 export interface LPlatz {
@@ -197,8 +199,8 @@ function layout(k: LKnoten, groessen: Map<string, { b: number; h: number }>, zei
       const mitte = (anker[0]! + anker.at(-1)!) / 2;
       const zeileY = Math.max(k.h, clusterUnten, zeilen?.[tiefe] ?? 0) + k.abstandY;
       const dx = k.ax - mitte;
-      const reihe = platziert.map((p) => verschieben(p, dx, zeileY));
-      const minOben = Math.min(...reihe.map((r, i) => r.wy + k.kinder[i]!.oben));
+      const reihe = platziert.map((p, i) => verschieben(p, dx, zeileY + (k.kinder[i]!.versatz ?? 0)));
+      const minOben = Math.min(...reihe.map((r, i) => r.wy - (k.kinder[i]!.versatz ?? 0) + k.kinder[i]!.oben));
       const schieneY = k.unten + (minOben - k.unten) * 0.5;
       for (const r of reihe) {
         plaetze = plaetze.concat(r.plaetze);

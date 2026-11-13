@@ -163,6 +163,7 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     k.richtung = layout.kinder ?? "horizontal";
     k.abstandX = layout.abstand ?? ansicht.abstandStandard.waagerecht;
     k.abstandY = layout.abstand ?? ansicht.abstandStandard.senkrecht;
+    k.versatz = layout.versatz;
     // Beschriftung unter dem Zeichen: die Linie nach unten beginnt unter dem Text.
     if ((stelle.beschriftungPosition ?? "unten") === "unten" && (stelle.beschriftung.trim() || stelle.zusatzzeilen.some((z) => z.trim()))) k.unten = k.h;
     if (!eingeklappt) {
@@ -263,11 +264,17 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
   let hoehe = block.h + oy + RAND;
   if (ansicht.zusaetze.length) {
     for (const z of ansicht.zusaetze) {
-      const x = z.x + ox, y = z.y + oy;
+      let x = z.x + ox, y = z.y + oy;
+      if (z.bezug) {
+        const p = platz.get(z.bezug), k = kaesten.get(z.bezug);
+        if (!p || !k) continue;
+        x = p.x + k.knoten.ax - z.b / 2 + z.x;
+        y = p.y + k.knoten.h + z.y;
+      }
       if (z.art === "text") {
         elemente.push({ art: "text", x, y: y + zeilenHoehe(z.groesse) * 0.8, text: z.text, groesse: z.groesse, anker: "start" });
       } else {
-        elemente.push(pfeil(x, y, z.b, z.h, z.richtung));
+        elemente.push(pfeil(x, y, z.b, z.h, z.richtung, z.farbe));
         if (z.nummer) elemente.push({ art: "text", x: x + z.b / 2, y: y + z.h * 0.72, text: z.nummer, groesse: 11, fett: true, anker: "middle" });
       }
       hoehe = Math.max(hoehe, y + z.h + RAND);
@@ -276,7 +283,7 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
   return { breite: Math.max(breite, optionen.titel ? textBreite(plan.name, 14, true) + 50 : 0), hoehe, elemente };
 }
 
-function pfeil(x: number, y: number, b: number, h: number, richtung: "oben" | "unten" | "links" | "rechts"): Element {
+function pfeil(x: number, y: number, b: number, h: number, richtung: "oben" | "unten" | "links" | "rechts", farbe = "#FF4500"): Element {
   const s = b * 0.3; // Schaftbreite/2 Rand
   const k = h * 0.4; // Kopflänge
   let punkte: Array<[number, number]> = [
@@ -288,7 +295,7 @@ function pfeil(x: number, y: number, b: number, h: number, richtung: "oben" | "u
     const dreh = richtung === "rechts" ? 1 : -1;
     punkte = punkte.map(([px, py]) => [cx - dreh * (py - cy), cy + dreh * (px - cx)]);
   }
-  return { art: "vieleck", punkte, fuellung: "#FF4500", strich: "#000000", staerke: 0.3 };
+  return { art: "vieleck", punkte, fuellung: farbe, strich: "#000000", staerke: 0.3 };
 }
 
 export function verschiebeElement(e: Element, dx: number, dy: number): Element {

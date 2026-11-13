@@ -72,7 +72,7 @@ export const VORLAGEN: Vorlage[] = [
         lts = an({ zeichen: eigen("lts-weiss") }, el);
         fue = an({ zeichen: kat("Einheiten/Führungsgruppe"), beschriftung: "Führungsgruppe" }, el);
         for (let i = 1; i <= 3; i++) {
-          an({ zeichen: eigen("raute-eal"), nummer: String(i), anbindung: { lage: "unten", linie: i === 3 ? "gestrichelt" : "durchgezogen" } }, el);
+          an({ zeichen: eigen("raute-eal"), nummer: String(i), anbindung: { lage: "unten", linie: i === 3 ? "gestrichelt" : "durchgezogen" }, layout: { versatz: 26 } }, el);
         }
       });
       // LtS und Führungsgruppe in die Mitte der Einsatzleitung, EAL eine Ebene tiefer
@@ -104,6 +104,7 @@ export const VORLAGEN: Vorlage[] = [
       const a = ansicht(plan);
       a.hervorhebungen.push({ id: neueId(), stellen: [ea3], stil: "flaeche", farbe: "#1e6bff", linie: "durchgezogen" });
       a.hervorhebungen.push({ id: neueId(), stellen: ueal, stil: "flaeche", farbe: "#38c8f5", linie: "durchgezogen" });
+      ueal.forEach((u, i) => a.zusaetze.push({ id: neueId(), art: "pfeil", nummer: String(i + 1), richtung: "oben", bezug: u, x: 0, y: 6, b: 12, h: 12 }));
       a.kopfleiste = false;
       return plan;
     },
@@ -165,7 +166,7 @@ function dv1101(zeit: string | undefined, name: string, staerkeEl: number, einhe
   mit(plan, (an) => {
     el = an({ zeichen: { quelle: "eigen", vorlage: "raute-el", staerke: staerkeEl } });
     lts = an({ zeichen: eigen("lts-weiss") }, el);
-    an({ zeichen: einheit, stapel: 2 }, el);
+    an({ zeichen: einheit, stapel: 2, layout: { versatz: 26 } }, el);
     hilfe = an({ zeichen: fuehrungshilfe }, el);
   });
   ansicht(plan).hervorhebungen.push({ id: neueId(), stellen: [el, lts, hilfe], stil: "flaeche", farbe: "#e3e3e3", linie: "gestrichelt", text: "Einsatzleitung" });

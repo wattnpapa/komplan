@@ -10,6 +10,8 @@ import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan, Stelle } from "../m
 import type { Element, Szene } from "../szene/typen";
 import { textBreite, zeilenHoehe } from "../szene/text";
 import { baumLayout, waldLayout, type LKnoten } from "./baum";
+import { kontaktblock, type Kontaktblock } from "./kontaktblock";
+import { kopfleiste } from "../szene/kopfleiste";
 
 /** Kantenlänge des Zeichen-Quadrats (256er viewBox) in mm. */
 export const ZEICHEN_MM = 18;
@@ -36,11 +38,14 @@ function stelleKasten(stelle: Stelle, eingeklappt: number): Kasten {
   const herkunft = { stelle: stelle.id, rolle: "knoten" as const };
 
   if (stelle.typ === "auslassung") {
-    const zeichen = stelle.auslassung ?? "⋮";
-    const g = 22;
-    const b = Math.max(8, textBreite(zeichen, g, true) + 2);
-    const h = zeilenHoehe(g);
-    elemente.push({ art: "text", x: b / 2, y: h * 0.8, text: zeichen, groesse: g, fett: true, anker: "middle", herkunft });
+    // Drei Punkte als Kreise: „⋮" kennt die PDF-Standardschrift nicht.
+    const senkrecht = (stelle.auslassung ?? "⋮") === "⋮";
+    const b = senkrecht ? 6 : 12;
+    const h = senkrecht ? 12 : 6;
+    elemente.push({ art: "rechteck", x: 0, y: 0, b, h, fuellung: "#ffffff", deckkraft: 0, herkunft });
+    for (let i = 0; i < 3; i++) {
+      elemente.push({ art: "kreis", x: senkrecht ? b / 2 : 2 + i * 4, y: senkrecht ? 2 + i * 4 : h / 2, r: 0.9, fuellung: "#000000", herkunft });
+    }
     return {
       knoten: knoten(stelle, { b, h, ax: b / 2, oben: 0, unten: h, mitteY: h / 2, zLinks: 0, zRechts: b }),
       elemente,
@@ -124,6 +129,34 @@ function stelleKasten(stelle: Stelle, eingeklappt: number): Kasten {
   };
 }
 
+const BLOCK_ABSTAND = 2.5;
+
+/** Hängt den Kontaktblock rechts, links oder unter den Kasten einer Stelle. */
+function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "links" | "unten"): void {
+  const k = kasten.knoten;
+  if (lage === "rechts") {
+    const x = k.b + BLOCK_ABSTAND;
+    const y = Math.max(0, k.oben - 1);
+    kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, x, y)));
+    k.b = x + block.b;
+    k.h = Math.max(k.h, y + block.h);
+  } else if (lage === "links") {
+    const dx = block.b + BLOCK_ABSTAND;
+    kasten.elemente = kasten.elemente.map((e) => verschiebeElement(e, dx, 0));
+    k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx;
+    const y = Math.max(0, k.oben - 1);
+    kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, 0, y)));
+    k.h = Math.max(k.h, y + block.h);
+  } else {
+    const x = Math.max(0, k.zLinks);
+    const y = k.h + 1;
+    kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, x, y)));
+    k.b = Math.max(k.b, x + block.b);
+    k.h = y + block.h;
+    k.unten = k.h;
+  }
+}
+
 function knoten(stelle: Stelle, m: Pick<LKnoten, "b" | "h" | "ax" | "oben" | "unten" | "mitteY" | "zLinks" | "zRechts">): LKnoten {
   return { id: stelle.id, ...m, kinder: [], seitlich: [], richtung: "horizontal", linie: stelle.anbindung.linie, abstandX: 0, abstandY: 0 };
 }
@@ -159,6 +192,8 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     const kasten = stelleKasten(stelle, eingeklappt);
     kaesten.set(id, kasten);
     const k = kasten.knoten;
+    const mitBlock = ansicht.typ === "kommunikationsplan" && ansicht.variante === "organigramm" && stelle.typ === "stelle";
+    const blockLage = mitBlock ? einstellung?.kontaktLage ?? ansicht.kontaktLage : "aus";
     const layout = { ...stelle.layout, ...einstellung?.layout };
     k.richtung = layout.kinder ?? "horizontal";
     k.abstandX = layout.abstand ?? ansicht.abstandStandard.waagerecht;
@@ -166,6 +201,10 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     k.versatz = layout.versatz;
     // Beschriftung unter dem Zeichen: die Linie nach unten beginnt unter dem Text.
     if ((stelle.beschriftungPosition ?? "unten") === "unten" && (stelle.beschriftung.trim() || stelle.zusatzzeilen.some((z) => z.trim()))) k.unten = k.h;
+    if (mitBlock && blockLage !== "aus") {
+      const block = kontaktblock(stelle, ansicht as KomplanAnsicht, plan.stand.zeitpunkt);
+      if (block.h > 0) blockAnhaengen(kasten, block, blockLage);
+    }
     if (!eingeklappt) {
       for (const kindId of stelle.kinder) {
         const kind = bauen(kindId);
@@ -280,7 +319,41 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
       hoehe = Math.max(hoehe, y + z.h + RAND);
     }
   }
-  return { breite: Math.max(breite, optionen.titel ? textBreite(plan.name, 14, true) + 50 : 0), hoehe, elemente };
+  let gesamtBreite = Math.max(breite, optionen.titel ? textBreite(plan.name, 14, true) + 50 : 0);
+
+  // Fußnoten
+  const fussnoten = plan.fussnoten.filter((f) => !ansicht.fussnoten || ansicht.fussnoten.includes(f.id));
+  if (fussnoten.length) {
+    let y = hoehe - RAND + 4;
+    for (const f of fussnoten) {
+      y += zeilenHoehe(8);
+      const t = `${f.marke ? `${f.marke} ` : ""}${f.text}`;
+      elemente.push({ art: "text", x: RAND, y, text: t, groesse: 8, anker: "start", herkunft: { rolle: "fussnote" } });
+      gesamtBreite = Math.max(gesamtBreite, textBreite(t, 8) + 2 * RAND);
+    }
+    hoehe = y + RAND;
+  }
+
+  // Kopfleiste (Fb Fü) über allem
+  if (ansicht.kopfleiste && ansicht.typ === "kommunikationsplan") {
+    gesamtBreite = Math.max(gesamtBreite, 200);
+    const bild = plan.kopf.logo ? plan.bilder[plan.kopf.logo] : undefined;
+    const kopf = kopfleiste({
+      breite: gesamtBreite - 2 * RAND,
+      formular: ansicht.variante === "fb-fue-76" ? "Fb Fü 76" : undefined,
+      titel: "Kommunikationsplan",
+      kopf: plan.kopf,
+      dtg: plan.stand.dtg,
+      logo: bild ? { daten: bild.daten, breite: bild.breite, hoehe: bild.hoehe } : undefined,
+      organisationText: plan.organisation === "thw" ? "Technisches\nHilfswerk" : undefined,
+    });
+    const dy = kopf.h + 6;
+    const verschoben = elemente.map((e) => verschiebeElement(e, 0, dy));
+    elemente.length = 0;
+    elemente.push(...kopf.elemente.map((e) => verschiebeElement(e, RAND, RAND)), ...verschoben);
+    hoehe += dy;
+  }
+  return { breite: gesamtBreite, hoehe, elemente };
 }
 
 function pfeil(x: number, y: number, b: number, h: number, richtung: "oben" | "unten" | "links" | "rechts", farbe = "#FF4500"): Element {
@@ -300,6 +373,8 @@ function pfeil(x: number, y: number, b: number, h: number, richtung: "oben" | "u
 
 export function verschiebeElement(e: Element, dx: number, dy: number): Element {
   switch (e.art) {
+    case "kreis":
+      return { ...e, x: e.x + dx, y: e.y + dy };
     case "linie":
     case "vieleck":
       return { ...e, punkte: e.punkte.map(([x, y]) => [x + dx, y + dy] as [number, number]) };

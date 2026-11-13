@@ -291,7 +291,7 @@ interface BaumAnsichtBasis extends AnsichtBasis {
   /** Teilbaum zeigen statt aller Wurzeln. */
   wurzel?: Id;
   /** Pro Stelle: einklappen, ausblenden, Layout überschreiben. */
-  knoten: Record<Id, { eingeklappt?: boolean; ausgeblendet?: boolean; layout?: KnotenLayout }>;
+  knoten: Record<Id, KnotenEinstellung>;
   hervorhebungen: Hervorhebung[];
   /** Nummerierte Pfeile/Freitexte unter dem Baum (THW-Einsatzstruktur, Planspiel). */
   zusaetze: Freielement[];
@@ -306,7 +306,7 @@ export interface KomplanAnsicht extends BaumAnsichtBasis {
   typ: "kommunikationsplan";
   variante: "organigramm" | "fb-fue-76" | "fwdv-800";
   /** Organigramm: wo der Kontaktblock steht. */
-  kontaktLage: "rechts" | "unten";
+  kontaktLage: KontaktLage;
   /** Welche Angaben im Block erscheinen. */
   felder: Array<"bezeichnung" | "betriebDurch" | "leiter" | "funkrufname" | KontaktArt | "funk" | "nebenstellen">;
   /** Leere Felder als gepunktete Linie drucken (Papier zum Ausfüllen). */
@@ -315,6 +315,17 @@ export interface KomplanAnsicht extends BaumAnsichtBasis {
   fokus?: Id;
   /** Fb Fü 76: zusätzlich in der oberen Reihe gezeigte Nachbarn (Stellen ohne Unterstellungsbezug). */
   nachbarn?: Id[];
+}
+
+export type KontaktLage = "rechts" | "unten" | "links";
+
+/** Einstellungen einer Stelle in einer Baum-Ansicht. */
+export interface KnotenEinstellung {
+  eingeklappt?: boolean;
+  ausgeblendet?: boolean;
+  layout?: KnotenLayout;
+  /** Kommunikationsplan: Lage des Kontaktblocks dieser Stelle; "aus" blendet ihn aus. */
+  kontaktLage?: KontaktLage | "aus";
 }
 
 export interface Hervorhebung {

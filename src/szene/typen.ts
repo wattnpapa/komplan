@@ -9,7 +9,7 @@ import type { Id, Linienart, ZeichenRef } from "../modell/typen";
 /** Woher ein Element stammt: für Auswahl, Klick und Kontextmenü. */
 export interface Herkunft {
   stelle?: Id;
-  rolle?: "knoten" | "beschriftung" | "kontakt" | "unterstellung" | "verbindung" | "hervorhebung" | "kopf" | "einklapp";
+  rolle?: "knoten" | "beschriftung" | "kontakt" | "unterstellung" | "verbindung" | "hervorhebung" | "kopf" | "einklapp" | "fussnote";
 }
 
 interface Basis {
@@ -63,7 +63,22 @@ export interface Vieleck extends Basis {
   linie?: Linienart;
 }
 
-export type Element = Rechteck | Linienzug | Text | Zeichen | Vieleck;
+export interface Kreis extends Basis {
+  art: "kreis";
+  x: number; y: number; r: number;
+  fuellung?: string;
+  strich?: string;
+  staerke?: number;
+}
+
+/** Rasterbild (Logo), PNG/JPEG als data-URL. */
+export interface Bild extends Basis {
+  art: "bild";
+  x: number; y: number; b: number; h: number;
+  daten: string;
+}
+
+export type Element = Rechteck | Linienzug | Text | Zeichen | Vieleck | Kreis | Bild;
 
 export interface Szene {
   breite: number; // mm

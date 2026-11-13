@@ -3,7 +3,7 @@ import type { Draft } from "immer";
 import { dateiname, herunterladen, jsonExport, pngExport, svgExport } from "../ausgabe/export";
 import { fuehrungsorgSzene } from "../layout/fuehrungsorg";
 import { elternVon } from "../modell/baum";
-import { neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, type Ziel } from "../modell/plan";
+import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, type Ziel } from "../modell/plan";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan } from "../modell/typen";
 import { planPruefen } from "../modell/validierung";
 import { planLaden, planSpeichern, staendeVon } from "../speicher/db";
@@ -14,6 +14,8 @@ import { PlanEigenschaften, StelleEigenschaften } from "./eigenschaften";
 import { Gliederung, stelleTitel } from "./gliederung";
 import { PlanStore } from "./plan-store";
 import { Zeichenflaeche } from "./zeichenflaeche";
+import { PdfDialog } from "./pdf-dialog";
+import { StaendeDialog } from "./staende-dialog";
 
 type BaumAnsicht = FuehrungsorgAnsicht | KomplanAnsicht;
 const SPEICHER_VERZUG = 800;
@@ -59,10 +61,39 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const [kontext, setKontext] = useState<{ id: Id; x: number; y: number }>();
   const gespeicherteVersion = useRef(store.version);
 
+  const [ansichtId, setAnsichtId] = useState<Id>();
+  const pdfDialog = useRef<HTMLDialogElement>(null);
+  const staendeDialog = useRef<HTMLDialogElement>(null);
+  const baumAnsichten = plan.ansichtReihenfolge.filter((a) => plan.ansichten[a] && plan.ansichten[a]!.typ !== "skizze");
   const ansicht = useMemo(() => {
-    const id = plan.ansichtReihenfolge.find((a) => plan.ansichten[a]?.typ !== "skizze");
+    const id = ansichtId && baumAnsichten.includes(ansichtId) ? ansichtId : baumAnsichten[0];
     return plan.ansichten[id!] as BaumAnsicht;
-  }, [plan]);
+  }, [plan, ansichtId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ansichtAnlegen = (typ: "fuehrungsorganisation" | "kommunikationsplan") => {
+    const vorlage = { knoten: structuredClone(ansicht.knoten), hervorhebungen: structuredClone(ansicht.hervorhebungen), abstandStandard: { ...ansicht.abstandStandard } };
+    const neu = typ === "kommunikationsplan" ? neueKomplanAnsicht(vorlage) : neueFuehrungsorgAnsicht(vorlage);
+    const gleiche = baumAnsichten.filter((a) => plan.ansichten[a]!.typ === typ).length;
+    if (gleiche) neu.name = `${neu.name} ${gleiche + 1}`;
+    aendern((p) => {
+      p.ansichten[neu.id] = neu;
+      p.ansichtReihenfolge.push(neu.id);
+    });
+    setAnsichtId(neu.id);
+  };
+  const ansichtUmbenennen = (id: Id) => {
+    const name = prompt("Name der Ansicht:", plan.ansichten[id]!.name)?.trim();
+    if (name) aendern((p) => void (p.ansichten[id]!.name = name));
+  };
+  const ansichtLoeschen = async (id: Id) => {
+    if (baumAnsichten.length < 2) return;
+    if (!(await bestaetigen(`Ansicht „${plan.ansichten[id]!.name}" löschen? Die Stellen und ihre Kontaktdaten bleiben erhalten.`, "Ansicht löschen"))) return;
+    aendern((p) => {
+      delete p.ansichten[id];
+      p.ansichtReihenfolge = p.ansichtReihenfolge.filter((a) => a !== id);
+    });
+    setAnsichtId(undefined);
+  };
 
   const aendern = useCallback((rezept: (p: Draft<Plan>) => void, buendel?: string) => store.aendern(rezept, buendel), [store]);
 
@@ -76,7 +107,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
     };
   }, [zeichenSchluessel, store]);
 
-  const szene = useMemo(() => fuehrungsorgSzene(plan, ansicht, { titel: ansicht.kopfleiste }), [plan, ansicht, zeichenBereit]);
+  const szene = useMemo(() => fuehrungsorgSzene(plan, ansicht, { titel: ansicht.kopfleiste && ansicht.typ === "fuehrungsorganisation" }), [plan, ansicht, zeichenBereit]); // eslint-disable-line react-hooks/exhaustive-deps
   const hinweise = useMemo(() => planPruefen(plan).filter((h) => h.stufe !== "info"), [plan]);
 
   // Autosave
@@ -237,9 +268,10 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const exportieren = async (art: "svg" | "png" | "png-transparent" | "json") => {
     setExportOffen(false);
     try {
-      if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg"));
-      else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(szene, 3, art === "png" ? "#ffffff" : undefined), dateiname(plan, "png"));
+      if (art === "svg") herunterladen(new Blob([await svgExport(szene, "#ffffff")], { type: "image/svg+xml" }), dateiname(plan, "svg", ansicht.name));
+      else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(szene, 3, art === "png" ? "#ffffff" : undefined), dateiname(plan, "png", ansicht.name));
       else herunterladen(jsonExport(plan, await staendeVon(plan.id)), dateiname(plan, "json"));
+      return;
     } catch (e) {
       kurzmeldung(`Export fehlgeschlagen: ${(e as Error).message}`, "fehler");
     }
@@ -304,6 +336,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
           </button>
           {exportOffen && (
             <div className="menue-liste" role="menu">
+              <button role="menuitem" type="button" onClick={() => (setExportOffen(false), pdfDialog.current?.showModal())}>PDF…</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("svg")}>SVG (Vektor)</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("png")}>PNG, weißer Hintergrund</button>
               <button role="menuitem" type="button" onClick={() => void exportieren("png-transparent")}>PNG, transparent</button>
@@ -311,11 +344,33 @@ function EditorGeladen({ store }: { store: PlanStore }) {
             </div>
           )}
         </div>
+        <button type="button" onClick={() => staendeDialog.current?.showModal()} title="Stand anlegen, frühere Stände ansehen und vergleichen">
+          Stand <span className="daten">{plan.stand.dtg}</span> · V{plan.stand.version}
+        </button>
         {hinweise.length > 0 && (
           <span className="hinweis-marke" title={hinweise.map((h) => h.text).join("\n")}>
             {hinweise.length} Hinweis{hinweise.length > 1 ? "e" : ""}
           </span>
         )}
+      </div>
+
+      <div className="ansichten-leiste" role="tablist" aria-label="Ansichten">
+        {baumAnsichten.map((id) => {
+          const a = plan.ansichten[id]!;
+          const aktiv = id === ansicht.id;
+          return (
+            <span key={id} className={`ansicht-reiter ${aktiv ? "aktiv" : ""}`}>
+              <button type="button" role="tab" aria-selected={aktiv} onClick={() => setAnsichtId(id)} onDoubleClick={() => ansichtUmbenennen(id)} title="Doppelklick: umbenennen">
+                <span className="ansicht-art">{a.typ === "kommunikationsplan" ? "Komplan" : "FüOrg"}</span> {a.name}
+              </button>
+              {aktiv && baumAnsichten.length > 1 && (
+                <button type="button" className="ansicht-weg" aria-label={`Ansicht ${a.name} löschen`} onClick={() => void ansichtLoeschen(id)}>×</button>
+              )}
+            </span>
+          );
+        })}
+        <button type="button" className="ansicht-neu" onClick={() => ansichtAnlegen("kommunikationsplan")}>+ Kommunikationsplan</button>
+        <button type="button" className="ansicht-neu" onClick={() => ansichtAnlegen("fuehrungsorganisation")}>+ Führungsorganisation</button>
       </div>
 
       <div className="editor-spalten">
@@ -356,6 +411,8 @@ function EditorGeladen({ store }: { store: PlanStore }) {
           )}
         </aside>
       </div>
+      <PdfDialog dialogRef={pdfDialog} plan={plan} ansicht={ansicht} szene={szene} />
+      <StaendeDialog dialogRef={staendeDialog} store={store} plan={plan} />
     </div>
   );
 }

@@ -20,7 +20,7 @@ describe("Vorlagen", () => {
       if (a.typ !== "skizze" && plan.wurzeln.length) expect(fuehrungsorgSzene(plan, a).elemente.length).toBeGreaterThan(0);
       // Keine echten Kontaktdaten in Beispielen
       const json = JSON.stringify(plan);
-      expect(json).not.toMatch(/@(?!example\.org)[a-z0-9-]+\.[a-z]{2,}/i);
+      expect(json).not.toMatch(/@(?![a-z0-9.-]*example\.org)[a-z0-9-]+\.[a-z]{2,}/i);
     });
   }
 });

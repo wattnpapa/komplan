@@ -2,6 +2,20 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-13 (M2)
+
+- **PDF direkt mit jsPDF**, nicht SVG → PDF im Ganzen: Linien, Flächen und Texte entstehen als PDF-Objekte in der Standardschrift Helvetica (nicht eingebettet, metrisch gleich mit dem Layout). Nur die taktischen Zeichen gehen über svg2pdf.js. jsPDF und svg2pdf (ca. 156 kB gz) werden erst beim Export geladen.
+- **Roboto Slab als TTF**: jsPDF bettet nur TrueType ein. `scripts/woff-zu-ttf.mts` packt die WOFF-Datei aus dem Zeichen-Release verlustfrei zu TTF um; Lizenztext in `public/schrift/LIZENZ-ROBOTO-SLAB.txt`.
+- **Keine Sonderzeichen im PDF-Text**: Richtungspfeile der Rufgruppen sind gezeichnete Flächen, Auslassungen drei Punkte. Was nicht in WinAnsi liegt, ersetzt `pdfText` (wie einsatzauftrag „→" zu „->").
+- **Einpassen** vergrößert kleine Pläne höchstens auf das Doppelte. **Teilen** druckt in Originalgröße mit 10 mm Überlappung; der Seitenfuß nennt Zeile/Spalte.
+- **Einstufung**: Im schmalen Feld der Kopfleiste steht „VS-NfD" (wie „N f D" im Vordruck), der volle Wortlaut oben und wahlweise unten auf jeder PDF-Seite.
+- **Kontaktblock**: Mehrere E-Mail-Adressen werden „Mail 1", „Mail 2" nummeriert (wie im NLWKN-Plan). Gültigkeiten stehen rot hinter dem Eintrag; abgelaufene Einträge bleiben sichtbar, die Hinweisliste meldet sie. Platzhalterlinien gibt es für leere Bezeichnung, Tel., Fax, Mail und Rufname sowie für Kontakte ohne Wert.
+- **Neue Ansicht** übernimmt Einklapp-/Layout-Einstellungen und Hervorhebungen der gerade offenen Ansicht, damit der Kommunikationsplan aussieht wie die Führungsorganisation.
+- **Stand anlegen** friert den laufenden Plan als Schnappschuss ein (eigener IndexedDB-Store, im JSON-Export enthalten) und setzt den Plan auf Version +1 mit dem aktuellen Zeitpunkt. Der Vergleich listet Stellen, Kontakte, Funk, Nebenstellen, Unterstellung und Kopf.
+- **Logo** wird beim Laden auf höchstens 600 px gerastert und als PNG im Plan gespeichert, auch bei SVG-Dateien (kein Skript aus fremden SVG im Plan).
+- **Modell additiv erweitert**: `KnotenEinstellung.kontaktLage` (je Stelle und Ansicht rechts/links/unten/aus), `KontaktLage` um „links".
+- Fb Fü 76 und FwDV 800 sind in der Auswahl der Darstellung sichtbar, aber gesperrt, bis M4 sie liefert.
+
 ## 2026-11-13 (M1)
 
 - **Zeichenkatalog vorerst in komplan statt im Kern-Baustein.** Abgesprochen war, den vollständigen Katalog in `bos-taktische-zeichen` aufzunehmen. Schreibzugriff auf dieses Repo bekam die Sitzung nicht. Das Holskript (`scripts/zeichen-holen.mts`) und die Ablage (`src/zeichen/katalog/*.json`, Index, eigene Zeichen in `src/zeichen/eigen/`) sind deshalb ohne DOM- und React-Importe gebaut und lassen sich als neues Modul `katalog` in den Kern umziehen; das Submodul ist schon eingebunden. Aufnahmeregel 5 (Bundle-Budget von erfassungsbogen) bleibt gewahrt, wenn der Katalog dort als eigener Einstiegspunkt liegt und nicht in `index.ts` exportiert wird.

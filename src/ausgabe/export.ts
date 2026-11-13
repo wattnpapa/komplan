@@ -88,3 +88,39 @@ export async function pngExport(szene: Szene, faktor: number, hintergrund?: stri
 export function jsonExport(plan: Plan, staende?: StandSchnappschuss[]): Blob {
   return new Blob([dateiSchreiben(plan, staende)], { type: "application/json" });
 }
+
+let ttfBase64: Promise<string> | undefined;
+
+/** Roboto Slab als TTF für jsPDF (einmal geladen). */
+function zeichenSchriftTtf(): Promise<string> {
+  ttfBase64 ??= fetch(new URL("schrift/roboto-slab-bold.ttf", document.baseURI))
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(`Schrift: ${r.status}`))))
+    .then((buf) => {
+      let bin = "";
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      return btoa(bin);
+    })
+    .catch(() => "");
+  return ttfBase64;
+}
+
+export interface PdfWahl {
+  format: "A4" | "A3";
+  ausrichtung: "quer" | "hoch";
+  grosseFlaeche: "einpassen" | "teilen";
+  einstufungPosition: "kopf" | "kopf-und-fuss";
+}
+
+/** PDF erzeugen; jsPDF und svg2pdf werden erst hier nachgeladen. */
+export async function pdfExport(szene: Szene, plan: Plan, ansichtName: string, wahl: PdfWahl): Promise<Blob> {
+  const [{ pdfErzeugen }, ttf] = await Promise.all([import("./pdf"), zeichenSchriftTtf()]);
+  return pdfErzeugen(szene, {
+    format: wahl.format,
+    ausrichtung: wahl.ausrichtung,
+    grosseFlaeche: wahl.grosseFlaeche,
+    fuss: { titel: `${plan.name} – ${ansichtName}`, dtg: plan.stand.dtg, version: plan.stand.version },
+    einstufung: plan.kopf.einstufung ? { text: plan.kopf.einstufung, position: wahl.einstufungPosition } : undefined,
+    zeichenSchriftTtf: ttf || undefined,
+  });
+}

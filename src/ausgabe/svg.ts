@@ -61,6 +61,12 @@ function elementSvg(e: Element, nr: number, optionen: SvgOptionen): string {
       const unter = e.unterstrichen ? ' text-decoration="underline"' : "";
       return `<text x="${z(e.x)}" y="${z(e.y)}" font-size="${z(groesseMm)}" text-anchor="${e.anker}"${fett}${farbe}${unter}${h} xml:space="preserve">${xml(e.text)}</text>`;
     }
+    case "kreis": {
+      const strich = e.strich ? ` stroke="${e.strich}" stroke-width="${z(e.staerke ?? 0.3)}"` : "";
+      return `<circle cx="${z(e.x)}" cy="${z(e.y)}" r="${z(e.r)}" fill="${e.fuellung ?? "none"}"${strich}${h}/>`;
+    }
+    case "bild":
+      return `<image x="${z(e.x)}" y="${z(e.y)}" width="${z(e.b)}" height="${z(e.h)}" href="${xml(e.daten)}" preserveAspectRatio="xMidYMid meet"${h}/>`;
     case "zeichen": {
       const quelle = svgIdsPraefixen(zeichenSvg(e.ref), `z${nr}`);
       return `<svg x="${z(e.x)}" y="${z(e.y)}" width="${z(e.groesse)}" height="${z(e.groesse)}" viewBox="0 0 256 256" overflow="visible"${h}>${zeichenInhalt(quelle)}</svg>`;

@@ -4,9 +4,12 @@
  * Fb Fü 77, FwDV 800) kommen mit den jeweiligen Ansichten dazu.
  */
 
-import { neueFuehrungsorgAnsicht, neuerPlan, neueStelle, stelleAnlegen } from "./plan";
+import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neuerPlan, neueStelle, stelleAnlegen } from "./plan";
 import { neueId } from "./id";
-import type { Id, Plan, Stelle, ZeichenRef } from "./typen";
+import type { Funkangabe, Id, Kontakt, KontaktArt, Plan, Stelle, ZeichenRef } from "./typen";
+
+const k = (art: KontaktArt, wert: string, extra: Partial<Kontakt> = {}): Kontakt => ({ id: neueId(), art, wert, ...extra });
+const tmo = (rufgruppe: string): Funkangabe => ({ id: neueId(), art: "digital", betrieb: "TMO", rufgruppe, richtung: "unten" });
 
 const kat = (schluessel: string): ZeichenRef => ({ quelle: "katalog", schluessel });
 const eigen = (vorlage: string, text?: string): ZeichenRef => ({ quelle: "eigen", vorlage, ...(text !== undefined ? { text } : {}) });
@@ -112,27 +115,62 @@ export const VORLAGEN: Vorlage[] = [
   {
     id: "schadstoffunfall",
     titel: "Schadstoffunfall an der Küste (fiktiv)",
-    beschreibung: "Havariekommando, Lenkungsgruppe, drei Verwaltungsstäbe mit ELO und Einsatzabschnitten, Gegenstab seitlich.",
+    beschreibung: "Havariekommando, Lenkungsgruppe, drei Verwaltungsstäbe mit ELO und Einsatzabschnitten, Gegenstab seitlich; mit Kommunikationsplan und erfundenen Kontaktdaten.",
     gruppe: "Beispiele",
     erzeugen: (zeit) => {
       const plan = neuerPlan({ name: "Schadstoffunfall Musterküste", zeit, organisation: "verwaltung" });
+      const ohneBlock: Id[] = [];
+      const links: Id[] = [];
       mit(plan, (an) => {
-        const hk = an({ zeichen: eigen("hk"), bezeichnung: "Havariekommando" });
-        const lg = an({ zeichen: eigen("stab", "LG"), beschriftung: "Lenkungsgruppe", beschriftungPosition: "rechts", betriebDurch: "THW FK Musterstadt" }, hk);
-        const staebe: Array<[string, string, string[]]> = [
-          ["LK", "Musterkreis", ["Musterinsel", "Beispieloog", "Hafen Nord"]],
-          ["LK", "Beispielkreis", ["Deichsiel", "Sandbank"]],
-          ["Stadt", "Musterstadt", ["Groden", "Altersiel", "1. Einfahrt"]],
+        const hk = an({
+          zeichen: eigen("hk"), bezeichnung: "Havariekommando",
+          leiter: { name: "Erika Beispiel", kontakte: [] },
+          kontakte: [k("telefon", "0999 100-0"), k("email", "lage@hk.example.org")],
+        });
+        const lg = an({
+          zeichen: eigen("stab", "LG"), beschriftung: "Lenkungsgruppe", beschriftungPosition: "links", bezeichnung: "Lenkungsgruppe",
+          betriebDurch: "THW FK Musterstadt",
+          kontakte: [
+            k("telefon", "0999 200-40"), k("fax", "0999 200-18"),
+            k("email", "fk-musterstadt@example.org", { gueltigAb: "2026-11-13T15:00" }),
+            k("email", "lenkungsgruppe@example.org", { gueltigBis: "2026-11-13T15:00" }),
+          ],
+        }, hk);
+        const staebe: Array<[string, string, string[], string]> = [
+          ["LK", "Musterkreis", ["Musterinsel", "Beispieloog", "Hafen Nord"], "9901"],
+          ["LK", "Beispielkreis", ["Deichsiel", "Sandbank"], "9902"],
+          ["Stadt", "Musterstadt", ["Groden", "Altersiel", "1. Einfahrt"], "9903"],
         ];
-        staebe.forEach(([text, name, eas], i) => {
-          const stab = an({ zeichen: eigen("stab", text), beschriftung: name, beschriftungPosition: "rechts", bezeichnung: `${text === "LK" ? "Landkreis" : "Stadt"} ${name}, Einsatzstab` }, lg);
+        staebe.forEach(([text, name, eas, nr], i) => {
+          const stab = an({
+            zeichen: eigen("stab", text), beschriftung: name, beschriftungPosition: "rechts",
+            bezeichnung: `${text === "LK" ? "Landkreis" : "Stadt"} ${name}; Einsatzstab „Land"`,
+            kontakte: [k("telefon", `0999 3${i}0-1600`), k("fax", ""), k("email", `stab@${name.toLowerCase()}.example.org`)],
+          }, lg);
           if (i === 0) {
-            an({ zeichen: eigen("gegenstab", text), beschriftung: "Gegenstab", zusatzzeilen: ["wird gestellt durch LK"], anbindung: { lage: "seitlich-rechts", linie: "gestrichelt" } }, stab);
+            links.push(stab);
+            ohneBlock.push(an({ zeichen: eigen("gegenstab", text), beschriftung: "Gegenstab", zusatzzeilen: ["wird gestellt durch LK"], anbindung: { lage: "seitlich-rechts", linie: "gestrichelt" } }, stab));
           }
-          const elo = an({ zeichen: eigen("elo"), beschriftung: name, beschriftungPosition: "rechts" }, stab);
-          for (const ea of eas) an({ zeichen: kat("Führungsstellen/EAL"), beschriftung: "Heros", zusatzzeilen: [`${ea} 10`] }, elo);
+          const elo = an({
+            zeichen: eigen("elo"), beschriftung: name, beschriftungPosition: "rechts", bezeichnung: `TEL ${name}`,
+            funkrufname: `Florian ${name} 82/12/1`,
+            kontakte: [k("telefon", `0999 4${i}0-916`), k("fax", ""), k("mobil", `0999 5${i}0-1932`), k("email", `info@tel-${name.toLowerCase()}.example.org`)],
+            funk: [tmo(`TBZ_${nr}_UNI`)],
+          }, stab);
+          if (i === 0) links.push(elo);
+          for (const ea of eas) ohneBlock.push(an({ zeichen: kat("Führungsstellen/EAL"), beschriftung: "Heros", zusatzzeilen: [`${ea} 10`] }, elo));
         });
       });
+      const komplan = neueKomplanAnsicht({ name: "Kommunikationsplan", platzhalter: true });
+      for (const id of ohneBlock) komplan.knoten[id] = { kontaktLage: "aus" };
+      for (const id of links) komplan.knoten[id] = { kontaktLage: "links" };
+      plan.ansichten[komplan.id] = komplan;
+      plan.ansichtReihenfolge.push(komplan.id);
+      plan.kopf = { fuehrungsstelle: "Lenkungsgruppe", verfasserFunktion: "S 6", fuer: "Schadstoffunfall Musterküste (Übung)", fdr: "M. Mustermann, S 6" };
+      plan.fussnoten.push(
+        { id: neueId(), marke: "1)", text: "Die jeweiligen EAL werden durch FZ FK Musterstadt Nord dargestellt." },
+        { id: neueId(), marke: "2)", text: "Heros *** 10: an Stelle von *** wird der Name der EAL eingetragen." },
+      );
       return plan;
     },
   },

@@ -179,3 +179,36 @@ input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
   .blatt { box-shadow: none; }
   .auswahl-ebene { display: none; }
 }
+
+/* ---- M2: Ansichten, Kontakte, Stände ---- */
+.ansichten-leiste { display: flex; flex-wrap: wrap; gap: 0 var(--r-1); align-items: flex-end; padding: var(--r-1) var(--r-3) 0; background: var(--flaeche-2); border-bottom: var(--strich) solid var(--linie); }
+.ansicht-reiter { display: inline-flex; align-items: stretch; border: var(--strich) solid var(--linie); border-bottom: none; background: var(--flaeche-2); margin-bottom: -1px; }
+.ansicht-reiter.aktiv { background: var(--flaeche); border-color: var(--linie-stark); border-top: 3px solid var(--akzent); }
+.ansicht-reiter button { border: none; background: none; min-height: 2.4rem; padding: 0.2rem 0.7rem; }
+.ansicht-reiter.aktiv button[role="tab"] { font-weight: 700; }
+.ansicht-art { font-size: var(--t-xs); color: var(--text-2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.ansicht-weg { color: var(--text-2); padding: 0 0.5rem !important; }
+.ansicht-neu { min-height: 2.2rem; padding: 0.15rem 0.6rem; font-size: var(--t-s); margin-bottom: var(--r-1); border-style: dashed; }
+
+.eintrag-liste { display: flex; flex-direction: column; gap: var(--r-2); }
+.eintrag { border: var(--strich) solid var(--linie-fein); padding: var(--r-1) var(--r-2) var(--r-2); margin: 0; min-width: 0; }
+.eintrag label.feld { margin-top: var(--r-1); }
+.eintrag-mehr > summary { font-size: var(--t-xs); color: var(--text-2); cursor: pointer; margin-top: var(--r-1); }
+.eintrag-aktionen { display: flex; gap: var(--r-1); justify-content: flex-end; margin-top: var(--r-1); }
+.eintrag-aktionen button, .eintrag-liste .aktionen button { min-height: 2.2rem; padding: 0.15rem 0.55rem; font-size: var(--t-s); }
+.nst-tabelle { width: 100%; border-collapse: collapse; font-size: var(--t-s); }
+.nst-tabelle th { text-align: left; font-size: var(--t-xs); color: var(--text-2); }
+.nst-tabelle input { width: 100%; min-height: 2.2rem !important; padding: 0.2rem 0.35rem; }
+.nst-tabelle td { padding: 1px; }
+.schmal-eingabe { flex: 0 0 3.5rem !important; width: 3.5rem; }
+.logo-vorschau { max-width: 12rem; max-height: 4rem; background: #fff; border: var(--strich) solid var(--linie); padding: 2px; }
+
+.stand-ansicht { margin-top: var(--r-4); border-top: var(--strich-stark) solid var(--linie); padding-top: var(--r-2); }
+.aenderungen { margin: 0; padding-left: 1.2rem; font-size: var(--t-s); }
+.aenderung-art { font-family: var(--schrift-daten); font-size: var(--t-xs); font-weight: 700; padding: 0 0.3rem; border: var(--strich) solid var(--linie); }
+.aenderung-neu .aenderung-art { color: var(--gut); border-color: var(--gut-linie); background: var(--gut-fond); }
+.aenderung-entfernt .aenderung-art { color: var(--alarm); border-color: var(--alarm-linie); background: var(--alarm-fond); }
+.aenderung-geaendert .aenderung-art { color: var(--warn-text); border-color: var(--warn-linie); background: var(--warn-fond); }
+.stand-vorschau { margin-top: var(--r-3); background: #fff; border: var(--strich) solid var(--linie); padding: var(--r-2); }
+.stand-vorschau svg { width: 100%; height: auto; display: block; }
+.planliste li.gewaehlt { background: color-mix(in srgb, var(--auswahl) 10%, transparent); }

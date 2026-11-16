@@ -3,7 +3,7 @@ import { LINK_EMPFOHLEN, LINK_HOECHSTENS, linkMit, planDekodieren, planKodieren 
 import { neueId } from "../modell/id";
 import { jetzt } from "../modell/dtg";
 import type { Plan } from "../modell/typen";
-import { planLaden, planSpeichern } from "../speicher/db";
+import { dauerhaftAnfragen, planLaden, planSpeichern } from "../speicher/db";
 import { standInhaltFesthalten } from "../modell/stand";
 import { planOeffnen } from "./app";
 import { Dialog, kurzmeldung } from "./dialog";
@@ -92,6 +92,7 @@ export function LinkImport({ daten }: { daten: string }) {
       kopie.name = `${kopie.name} (aus Link)`;
     }
     await planSpeichern(kopie);
+    void dauerhaftAnfragen();
     history.replaceState(null, "", location.pathname + location.search);
     planOeffnen(kopie.id);
   };

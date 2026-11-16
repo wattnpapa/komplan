@@ -3,10 +3,13 @@
  * erhöht SCHEMA_VERSION und bekommt hier einen Schritt vN → vN+1.
  */
 
+import { neueId } from "./id";
 import { SCHEMA_VERSION } from "./plan";
 import type { Plan, StandSchnappschuss } from "./typen";
 
 export const DATEI_FORMAT = "komplan";
+/** Sammelsicherung: alle Pläne eines Geräts in einer Datei. */
+export const SAMMLUNG_FORMAT = "komplan-sammlung";
 
 export interface PlanDatei {
   format: typeof DATEI_FORMAT;
@@ -70,16 +73,68 @@ export function dateiSchreiben(plan: Plan, staende?: StandSchnappschuss[]): stri
   return JSON.stringify(datei, null, 2);
 }
 
-export function dateiLesen(text: string): { plan: Plan; staende: StandSchnappschuss[] } {
-  let roh: unknown;
+export interface SammlungDatei {
+  format: typeof SAMMLUNG_FORMAT;
+  schemaVersion: number;
+  /** Zeitpunkt der Sicherung. */
+  gesichert: string;
+  plaene: Array<{ plan: Plan; staende?: StandSchnappschuss[] }>;
+}
+
+export interface Eingelesen {
+  plan: Plan;
+  staende: StandSchnappschuss[];
+}
+
+function jsonLesen(text: string): unknown {
   try {
-    roh = JSON.parse(text);
+    return JSON.parse(text);
   } catch {
     throw new DateiFehler("Die Datei ist kein gültiges JSON.");
   }
-  const d = roh as Partial<PlanDatei>;
-  if (!d || d.format !== DATEI_FORMAT) throw new DateiFehler("Das ist keine komplan-Datei.");
+}
+
+function eintragLesen(d: { plan?: unknown; staende?: unknown }): Eingelesen {
   const plan = planMigrieren(d.plan);
-  const staende = (Array.isArray(d.staende) ? d.staende : []).map((s) => ({ ...s, plan: planMigrieren(s.plan) }));
+  const staende = (Array.isArray(d.staende) ? (d.staende as StandSchnappschuss[]) : []).map((s) => ({ ...s, plan: planMigrieren(s.plan) }));
+  return { plan, staende };
+}
+
+export function dateiLesen(text: string): Eingelesen {
+  const d = jsonLesen(text) as Partial<PlanDatei>;
+  if (!d || d.format !== DATEI_FORMAT) throw new DateiFehler("Das ist keine komplan-Datei.");
+  return eintragLesen(d);
+}
+
+export function sammlungSchreiben(eintraege: Array<{ plan: Plan; staende?: StandSchnappschuss[] }>, gesichert: string): string {
+  const datei: SammlungDatei = {
+    format: SAMMLUNG_FORMAT,
+    schemaVersion: SCHEMA_VERSION,
+    gesichert,
+    plaene: eintraege.map((e) => (e.staende?.length ? { plan: e.plan, staende: e.staende } : { plan: e.plan })),
+  };
+  return JSON.stringify(datei, null, 2);
+}
+
+/** Liest eine Plan-Datei oder eine Sammelsicherung. */
+export function dateienLesen(text: string): Eingelesen[] {
+  const d = jsonLesen(text) as { format?: string; plaene?: unknown };
+  if (d?.format === SAMMLUNG_FORMAT) {
+    if (!Array.isArray(d.plaene)) throw new DateiFehler("Die Sammelsicherung enthält keine Pläne.");
+    return d.plaene.map((e) => eintragLesen(e as { plan?: unknown; staende?: unknown }));
+  }
+  if (d?.format !== DATEI_FORMAT) throw new DateiFehler("Das ist keine komplan-Datei.");
+  return [eintragLesen(d as PlanDatei)];
+}
+
+/**
+ * Bereitet einen eingelesenen Plan zum Speichern vor. Die Stände bekommen
+ * immer neue IDs: Mit den alten würden sie die Stände eines vorhandenen Plans
+ * gleicher Herkunft überschreiben (Befund K17). Gibt es den Plan schon
+ * (`vorhanden`), wird er eine Kopie mit neuer ID und Namenszusatz.
+ */
+export function zumEinlesen(e: Eingelesen, vorhanden: boolean, zusatz = "eingelesen"): Eingelesen {
+  const plan: Plan = vorhanden ? { ...e.plan, id: neueId(), name: `${e.plan.name} (${zusatz})` } : { ...e.plan };
+  const staende = e.staende.map((s) => ({ ...s, id: neueId(), planId: plan.id }));
   return { plan, staende };
 }

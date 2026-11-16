@@ -27,6 +27,10 @@ let verbindung: Promise<IDBPDatabase<KomplanDb>> | undefined;
 
 function db(): Promise<IDBPDatabase<KomplanDb>> {
   verbindung ??= openDB<KomplanDb>(NAME, VERSION, {
+    // Browserdaten gelöscht oder Verbindung vom Browser beendet: beim nächsten Zugriff neu öffnen
+    terminated() {
+      verbindung = undefined;
+    },
     upgrade(d) {
       if (!d.objectStoreNames.contains("plaene")) d.createObjectStore("plaene", { keyPath: "id" });
       if (!d.objectStoreNames.contains("staende")) d.createObjectStore("staende", { keyPath: "id" }).createIndex("planId", "planId");
@@ -94,13 +98,14 @@ export async function planSpeichern(plan: Plan): Promise<string> {
  * Speichert nur, wenn die gespeicherte Revision noch `erwartet` ist (eine
  * Transaktion, also ohne Lücke zwischen Prüfen und Schreiben).
  */
-export async function planSpeichernWenn(plan: Plan, erwartet: string | undefined): Promise<{ ok: true; rev: string } | { ok: false }> {
+export async function planSpeichernWenn(plan: Plan, erwartet: string | undefined): Promise<{ ok: true; rev: string } | { ok: false; grund: "konflikt" | "fehlt" }> {
   const tx = (await db()).transaction(["plaene", "werte"], "readwrite");
   const werte = tx.objectStore("werte");
-  const aktuell = (await werte.get(revSchluessel(plan.id))) as string | undefined;
-  if (aktuell !== erwartet) {
+  const [aktuell, da] = await Promise.all([werte.get(revSchluessel(plan.id)) as Promise<string | undefined>, tx.objectStore("plaene").getKey(plan.id)]);
+  if (da === undefined || aktuell !== erwartet) {
     await tx.done;
-    return { ok: false };
+    // Plan fehlt ganz: Browserdaten gelöscht oder anderswo endgültig gelöscht
+    return { ok: false, grund: da === undefined ? "fehlt" : "konflikt" };
   }
   const rev = neueId();
   await Promise.all([tx.objectStore("plaene").put(plan), werte.put(rev, revSchluessel(plan.id)), tx.done]);
@@ -178,6 +183,54 @@ export async function wertLesen<T>(schluessel: string, vorgabe: T): Promise<T> {
 
 export async function wertSchreiben(schluessel: string, wert: unknown): Promise<void> {
   await (await db()).put("werte", wert, schluessel);
+}
+
+/** Alle Pläne außerhalb des Papierkorbs samt Ständen, für die Sammelsicherung. */
+export async function alleMitStaenden(): Promise<Array<{ plan: Plan; staende: StandSchnappschuss[] }>> {
+  const plaene = (await planListe()).filter((p) => !p.geloeschtAm);
+  const aus: Array<{ plan: Plan; staende: StandSchnappschuss[] }> = [];
+  for (const k of plaene) {
+    const plan = await planLaden(k.id);
+    if (plan) aus.push({ plan, staende: await staendeVon(k.id) });
+  }
+  return aus;
+}
+
+/** Wann welcher Plan zuletzt als Datei gesichert wurde (Plan-ID → Zeitpunkt). */
+export async function sicherungenLesen(): Promise<Record<string, string>> {
+  return wertLesen<Record<string, string>>("gesichert", {});
+}
+
+export async function gesichertMerken(planIds: string[], zeit: string): Promise<void> {
+  try {
+    const alt = await sicherungenLesen();
+    for (const id of planIds) alt[id] = zeit;
+    await wertSchreiben("gesichert", alt);
+  } catch {
+    // nur ein Hinweis, die Sicherung selbst ist schon heruntergeladen
+  }
+}
+
+export interface AblageStatus {
+  /** true: Browser verwirft die Daten nicht bei Platzmangel; undefined: unbekannt. */
+  dauerhaft?: boolean;
+  belegt?: number;
+  verfuegbar?: number;
+}
+
+export async function ablageStatus(): Promise<AblageStatus> {
+  const aus: AblageStatus = {};
+  try {
+    if (navigator.storage?.persisted) aus.dauerhaft = await navigator.storage.persisted();
+    const s = await navigator.storage?.estimate?.();
+    if (s) {
+      aus.belegt = s.usage;
+      aus.verfuegbar = s.quota;
+    }
+  } catch {
+    // unbekannt
+  }
+  return aus;
 }
 
 /** Bittet den Browser, die Daten nicht bei Platzmangel zu verwerfen. */

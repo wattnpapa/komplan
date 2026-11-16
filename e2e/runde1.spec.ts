@@ -217,3 +217,108 @@ test.describe("Tablet", () => {
     await expect(menue.getByRole("menuitem", { name: "Kommunikationsskizze erzeugen" })).toBeVisible();
   });
 });
+
+test("K17: Sicherung desselben Plans wieder einlesen lässt dem Original seine Stände", async ({ page }) => {
+  await vorlage(page, "fbfue76");
+  // Stand festhalten, dann als JSON sichern
+  await page.locator(".stand-knopf").click();
+  await page.getByRole("button", { name: /Stand Version 1 festhalten/ }).click();
+  await expect(page.locator(".planliste li", { hasText: "Version 1" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Export ▾" }).click();
+  const [json] = await Promise.all([page.waitForEvent("download"), page.getByRole("menuitem", { name: /JSON/ }).click()]);
+  const pfad = (await json.path())!;
+  const original = page.url();
+
+  await page.getByRole("button", { name: "← Pläne" }).click();
+  const [wahl] = await Promise.all([page.waitForEvent("filechooser"), page.getByRole("button", { name: /Plan einlesen/ }).click()]);
+  await wahl.setFiles(pfad);
+  await expect(page.getByText(/Diesen Plan gibt es hier schon\. Als Kopie .* mit 1 Stand eingelesen/)).toBeVisible();
+  await expect(page.locator(".plan-name")).toHaveValue(/\(eingelesen\)$/);
+  await page.locator(".stand-knopf").click();
+  await expect(page.locator(".planliste li", { hasText: "Version 1" })).toBeVisible();
+
+  // Das Original hat seinen Stand noch
+  await page.goto(original);
+  await page.locator(".stand-knopf").click();
+  await expect(page.locator(".planliste li", { hasText: "Version 1" })).toBeVisible();
+});
+
+test("K12: Startseite sagt, wo die Pläne liegen, und sichert alle in eine Datei", async ({ page }) => {
+  await vorlage(page, "leer");
+  await vorlage(page, "fbfue76");
+  await page.getByRole("button", { name: "← Pläne" }).click();
+  const ablage = page.locator(".ablage-karte");
+  await expect(ablage).toContainText("nur in diesem Browser auf diesem Gerät");
+  await expect(ablage).toContainText("Kein Plan ist in seinem jetzigen Stand als Datei gesichert.");
+  await expect(page.locator(".planliste").first()).toContainText("noch nie als Datei gesichert");
+
+  const [datei] = await Promise.all([page.waitForEvent("download"), ablage.getByRole("button", { name: "Alle Pläne als Datei sichern" }).click()]);
+  expect(datei.suggestedFilename()).toMatch(/^komplan-Sicherung-\d{12}\.json$/);
+  await expect(ablage).toContainText("Alle Pläne sind in ihrem jetzigen Stand als Datei gesichert.");
+  await expect(page.locator(".planliste").first()).toContainText("als Datei gesichert");
+
+  // Sammelsicherung lässt sich wieder einlesen (hier schon vorhanden: als Kopien)
+  const [wahl] = await Promise.all([page.waitForEvent("filechooser"), page.getByRole("button", { name: /Plan einlesen/ }).click()]);
+  await wahl.setFiles((await datei.path())!);
+  await expect(page.getByText("2 Pläne eingelesen, davon 2 als Kopie, weil es sie hier schon gab.")).toBeVisible();
+  await expect(page.locator(".planliste").first().locator("li")).toHaveCount(4);
+});
+
+test("K11: Speicherfehler mit Grund und Ausweg, fehlender Plan lässt sich wieder speichern", async ({ page }) => {
+  await vorlage(page, "fbfue76");
+  // Speicher voll simulieren
+  await page.evaluate(() => {
+    const w = window as unknown as { echtesPut?: typeof IDBObjectStore.prototype.put };
+    w.echtesPut = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function () {
+      throw new DOMException("voll", "QuotaExceededError");
+    };
+  });
+  await page.locator(".plan-name").fill("Bei vollem Speicher");
+  const band = page.locator(".konflikt-band");
+  await expect(band).toContainText("Speichern fehlgeschlagen");
+  await expect(band).toContainText("Speicher dieses Browsers ist voll");
+  await expect(page.locator(".speicher-stand")).toHaveText("Speichern fehlgeschlagen");
+  const [datei] = await Promise.all([page.waitForEvent("download"), band.getByRole("button", { name: "Als Datei sichern (JSON)" }).click()]);
+  expect(datei.suggestedFilename()).toMatch(/\.json$/);
+
+  // Verlassen fragt nach
+  await page.getByRole("button", { name: "← Pläne" }).click();
+  await expect(page.getByText(/Die letzten Änderungen sind nicht gespeichert/)).toBeVisible();
+  await page.getByRole("button", { name: "Hierbleiben" }).click();
+
+  // Speicher wieder frei: erneut versuchen
+  await page.evaluate(() => {
+    const w = window as unknown as { echtesPut: typeof IDBObjectStore.prototype.put };
+    IDBObjectStore.prototype.put = w.echtesPut;
+  });
+  await band.getByRole("button", { name: "Erneut versuchen" }).click();
+  await expect(band).toHaveCount(0);
+  await expect(page.locator(".speicher-stand")).toHaveText(/✓ gespeichert/);
+
+  // Plan verschwindet aus der Ablage (Browserdaten gelöscht)
+  await page.evaluate(async () => {
+    const id = location.hash.match(/^#\/plan\/([A-Za-z0-9]+)/)![1]!;
+    const db: IDBDatabase = await new Promise((ok) => (indexedDB.open("komplan").onsuccess = (e) => ok((e.target as IDBOpenDBRequest).result)));
+    await new Promise((ok) => (db.transaction("plaene", "readwrite").objectStore("plaene").delete(id).onsuccess = ok));
+  });
+  await page.locator(".plan-name").fill("Nach dem Löschen");
+  await expect(band).toContainText("nicht mehr vorhanden");
+  await band.getByRole("button", { name: "Hier wieder speichern" }).click();
+  await expect(band).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".plan-name")).toHaveValue("Nach dem Löschen");
+});
+
+test("K11: Neuer Plan bei voller Ablage meldet den Grund", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    IDBObjectStore.prototype.put = function () {
+      throw new DOMException("voll", "QuotaExceededError");
+    };
+  });
+  await page.getByRole("button", { name: "Neuer Plan" }).click();
+  await page.locator('[data-vorlage="leer"]').click();
+  await expect(page.getByText(/Der neue Plan ließ sich nicht anlegen\. Der Speicher dieses Browsers ist voll/)).toBeVisible();
+});

@@ -13,6 +13,7 @@ export const AENDERUNGEN: Aenderung[] = [
   {
     datum: "2026-11-13",
     punkte: [
+      "Ablage: Die Startseite sagt, dass die Pläne nur in diesem Browser liegen, ob der Browser sie dauerhaft behält und welche Pläne seit der letzten Änderung nicht als Datei gesichert sind; „Alle Pläne als Datei sichern“ legt eine Sammelsicherung an, die „Plan einlesen“ wieder liest. Scheitert das Speichern, nennt ein Band den Grund und bietet „Als Datei sichern“ und „Erneut versuchen“, und der Editor fragt vor dem Verlassen. Eine Sicherung desselben Plans wieder einzulesen, nimmt dem Original keine Stände mehr weg.",
       "Ohne Maus: Die gewählte Stelle hat Knöpfe für Unterstellte, Duplizieren, Skizze und Löschen, ein Feld „Untersteht“ und Knöpfe zum Verschieben und eine Ebene höher; das Kontextmenü gibt es auch in der Gliederung und per langem Drücken, und es schließt erst mit Esc oder Tipp daneben. Duplizieren einer Stelle funktioniert wieder.",
       "Sicherer: Löschen einer Stelle mit Unterstellten hat ein „Abbrechen“, Esc und Enter löschen nichts mehr; zwei offene Tabs mit demselben Plan überschreiben sich nicht mehr still; Eingaben überstehen Neuladen direkt nach dem Tippen; der Stand-Knopf zeigt „geändert“, Export und Druck bieten dann einen neuen Stand an, und der Ausdruck trägt Stand und Version (sonst ENTWURF).",
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

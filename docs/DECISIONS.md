@@ -2,6 +2,13 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-16 (Review-Runde 1, Befunde K11, K12, K17)
+
+- **Speicherfehler sichtbar mit Ausweg.** Scheitert das Speichern, erscheint ein rotes Band mit Grund in Klartext (Speicher voll, Ablage nicht erreichbar, sonst die Meldung des Browsers) und den Knöpfen „Als Datei sichern (JSON)" und „Erneut versuchen". Fehlt der Plan beim Speichern ganz in der Ablage (Browserdaten gelöscht, anderswo endgültig gelöscht), schreibt der Editor nicht still neu, sondern bietet „Hier wieder speichern". Solange Änderungen nirgends gesichert sind (Fehler, Konflikt), fragt „← Pläne" nach und der Browser fragt beim Schließen oder Neuladen (`beforeunload`). Beim normalen ungespeicherten Zustand fragt nichts, dafür gibt es die Notsicherung. Die Verbindung zur Datenbank wird nach einem Abbruch durch den Browser neu geöffnet.
+- **Ablage-Karte auf der Startseite**: nur in diesem Browser, Status von `navigator.storage.persisted()` mit Knopf „Dauerhaft speichern anfragen", belegter Speicher, Zahl der Pläne, die seit ihrer letzten Änderung nicht als Datei gesichert wurden. Die Zeitpunkte der letzten Dateisicherung stehen im Store `werte` unter `gesichert` (Plan-ID → Zeitpunkt), gesetzt beim JSON-Export und bei der Sammelsicherung; Minutengenauigkeit reicht. `persist()` wird auch beim Einlesen und beim Übernehmen eines Teil-Links angefragt.
+- **Sammelsicherung** als eigenes Dateiformat `{ format: "komplan-sammlung", schemaVersion, gesichert, plaene: [{ plan, staende? }] }`; „Plan einlesen" liest beide Formate. Mehrere Pläne werden eingelesen, ohne einen zu öffnen.
+- **Einlesen gibt Ständen immer neue IDs.** Vorher behielten sie ihre IDs und überschrieben beim Einlesen einer Sicherung desselben Plans (als Kopie) die Stände des Originals, das sie dadurch verlor. Gibt es den Plan schon, bleibt es bei einer Kopie mit „(eingelesen)"; die Meldung sagt das jetzt und nennt die Zahl der Stände. Ersetzen statt Kopie (K18) ist noch offen.
+
 ## 2026-11-13 (Review-Runde 1, Befunde K07–K08)
 
 - **Jede Handlung an einer Stelle ohne Rechtsklick und ohne Ziehen.** Über den Eigenschaften der gewählten Stelle stehen „+ Unterstellte", „Duplizieren", „Skizze erzeugen", „Löschen…" (rot abgesetzt), das Auswahlfeld „Untersteht" (oberste Stelle, lose Stelle oder jede Stelle außer der eigenen und ihren Unterstellten, eingerückt in Baumreihenfolge) und „Nach vorn", „Nach hinten", „Eine Ebene höher" (hinter die bisherige übergeordnete Stelle). Ziehen in der Gliederung bleibt für die Maus; Ziehen per Finger gibt es nicht, das Feld ersetzt es.

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { jetzt, zeitpunktLesbar } from "../modell/dtg";
-import { dateiLesen, DateiFehler } from "../modell/migration";
-import { neueId } from "../modell/id";
+import { dateienLesen, DateiFehler, sammlungSchreiben, zumEinlesen } from "../modell/migration";
 import { planDuplizieren } from "../modell/plan";
 import { VORLAGEN } from "../modell/vorlagen";
-import { dauerhaftAnfragen, papierkorbAufraeumen, PAPIERKORB_TAGE, planEndgueltigLoeschen, planLaden, planListe, planSpeichern, standSpeichern, type PlanKurz } from "../speicher/db";
+import { ablageStatus, alleMitStaenden, dauerhaftAnfragen, gesichertMerken, papierkorbAufraeumen, PAPIERKORB_TAGE, planEndgueltigLoeschen, planLaden, planListe, planSpeichern, sicherungenLesen, standSpeichern, type AblageStatus, type PlanKurz } from "../speicher/db";
+import { herunterladen } from "../ausgabe/export";
+import { speicherFehlerText } from "./speicherfehler";
 import { standInhaltFesthalten } from "../modell/stand";
 import { planOeffnen } from "./app";
 import { bestaetigen, Dialog, kurzmeldung } from "./dialog";
@@ -12,6 +13,8 @@ import { bestaetigen, Dialog, kurzmeldung } from "./dialog";
 export function Start() {
   const [liste, setListe] = useState<PlanKurz[] | undefined>();
   const [fehler, setFehler] = useState<string>();
+  const [status, setStatus] = useState<AblageStatus>({});
+  const [gesichert, setGesichert] = useState<Record<string, string>>({});
   const neuDialog = useRef<HTMLDialogElement>(null);
   const datei = useRef<HTMLInputElement>(null);
 
@@ -19,6 +22,8 @@ export function Start() {
     try {
       await papierkorbAufraeumen();
       setListe(await planListe());
+      setGesichert(await sicherungenLesen());
+      setStatus(await ablageStatus());
     } catch (e) {
       setFehler(`Die lokale Datenbank ist nicht erreichbar (${(e as Error).message}). Im privaten Modus mancher Browser kann komplan nichts speichern.`);
       setListe([]);
@@ -33,29 +38,71 @@ export function Start() {
     const v = VORLAGEN.find((x) => x.id === vorlageId)!;
     const plan = v.erzeugen(jetzt());
     standInhaltFesthalten(plan);
-    await planSpeichern(plan);
-    void dauerhaftAnfragen();
+    try {
+      await planSpeichern(plan);
+    } catch (e) {
+      kurzmeldung(`Der neue Plan ließ sich nicht anlegen. ${speicherFehlerText(e)}`, "fehler");
+      return;
+    }
+    void dauerhaftAnfragen().then(() => void ablageStatus().then(setStatus));
     neuDialog.current?.close();
     planOeffnen(plan.id);
   };
 
   const einlesen = async (f: File) => {
+    let eingelesen;
     try {
-      const { plan, staende } = dateiLesen(await f.text());
-      // Gibt es den Plan schon, als Kopie einlesen statt überschreiben.
-      if (await planLaden(plan.id)) {
-        plan.id = neueId();
-        plan.name = `${plan.name} (eingelesen)`;
-        for (const s of staende) s.planId = plan.id;
-      }
-      if (plan.stand.inhalt === undefined) standInhaltFesthalten(plan);
-      await planSpeichern(plan);
-      for (const s of staende) await standSpeichern({ ...s, planId: plan.id });
-      kurzmeldung(`„${plan.name}" eingelesen.`);
-      planOeffnen(plan.id);
+      eingelesen = dateienLesen(await f.text());
     } catch (e) {
       kurzmeldung(e instanceof DateiFehler ? e.message : `Die Datei ließ sich nicht lesen: ${(e as Error).message}`, "fehler");
+      return;
     }
+    try {
+      const fertig: Array<{ id: string; name: string; staende: number; kopie: boolean }> = [];
+      for (const e of eingelesen) {
+        // Gibt es den Plan schon, als Kopie einlesen statt überschreiben; Stände bekommen immer neue IDs.
+        const kopie = !!(await planLaden(e.plan.id));
+        const { plan, staende } = zumEinlesen(e, kopie);
+        if (plan.stand.inhalt === undefined) standInhaltFesthalten(plan);
+        await planSpeichern(plan);
+        for (const st of staende) await standSpeichern(st);
+        fertig.push({ id: plan.id, name: plan.name, staende: staende.length, kopie });
+      }
+      void dauerhaftAnfragen();
+      const mitStaenden = (n: number) => (n ? ` mit ${n} Stand${n > 1 ? "en" : ""}` : "");
+      if (fertig.length === 1) {
+        const x = fertig[0]!;
+        kurzmeldung(x.kopie ? `Diesen Plan gibt es hier schon. Als Kopie „${x.name}"${mitStaenden(x.staende)} eingelesen, das Original bleibt unverändert.` : `„${x.name}"${mitStaenden(x.staende)} eingelesen.`);
+        planOeffnen(x.id);
+      } else {
+        const kopien = fertig.filter((x) => x.kopie).length;
+        kurzmeldung(`${fertig.length} Pläne eingelesen${kopien ? `, davon ${kopien} als Kopie, weil es sie hier schon gab` : ""}.`);
+        await laden();
+      }
+    } catch (e) {
+      kurzmeldung(`Einlesen abgebrochen. ${speicherFehlerText(e)}`, "fehler");
+      await laden();
+    }
+  };
+
+  const alleSichern = async () => {
+    try {
+      const alle = await alleMitStaenden();
+      const zeit = jetzt();
+      const name = `komplan-Sicherung-${zeit.replace(/[^0-9]/g, "").slice(0, 12)}.json`;
+      herunterladen(new Blob([sammlungSchreiben(alle, zeit)], { type: "application/json" }), name);
+      await gesichertMerken(alle.map((a) => a.plan.id), zeit);
+      setGesichert(await sicherungenLesen());
+      kurzmeldung(`${alle.length} Pläne in eine Datei gesichert. „Plan einlesen" liest sie auf jedem Gerät wieder ein.`);
+    } catch (e) {
+      kurzmeldung(`Sicherung fehlgeschlagen. ${speicherFehlerText(e)}`, "fehler");
+    }
+  };
+
+  const dauerhaftBitten = async () => {
+    const ok = await dauerhaftAnfragen();
+    setStatus(await ablageStatus());
+    kurzmeldung(ok ? "Der Browser behält die Pläne jetzt auch bei Platzmangel." : "Der Browser hat abgelehnt. Er entscheidet selbst (z. B. nach Nutzung oder als installierte App). Regelmäßig als Datei sichern.", ok ? "gut" : "fehler");
   };
 
   const umbenennen = async (p: PlanKurz) => {
@@ -97,6 +144,8 @@ export function Start() {
   };
 
   const aktiv = liste?.filter((p) => !p.geloeschtAm) ?? [];
+  const ungesichert = aktiv.filter((p) => !gesichert[p.id] || gesichert[p.id]! < p.geaendert);
+  const mb = (b?: number) => (b === undefined ? "?" : b < 1e6 ? `${Math.max(1, Math.round(b / 1e3))} kB` : b < 1e9 ? `${(b / 1e6).toFixed(b < 1e8 ? 1 : 0)} MB` : `${(b / 1e9).toFixed(1)} GB`);
   const papierkorb = liste?.filter((p) => p.geloeschtAm) ?? [];
 
   return (
@@ -140,7 +189,8 @@ export function Start() {
                   {p.name || "(ohne Namen)"}
                 </a>
                 <span className="nebentext">
-                  Stand {p.stand} · {p.stellen} Stellen · geändert {zeitpunktLesbar(p.geaendert)}
+                  Stand {p.stand} · {p.stellen} Stellen · geändert {zeitpunktLesbar(p.geaendert)} ·{" "}
+                  {gesichert[p.id] ? `als Datei gesichert ${zeitpunktLesbar(gesichert[p.id]!)}` : "noch nie als Datei gesichert"}
                 </span>
                 <span className="planliste-aktionen">
                   <button type="button" onClick={() => void umbenennen(p)}>Umbenennen</button>
@@ -151,6 +201,34 @@ export function Start() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section className="karte ablage-karte" aria-labelledby="ablage-titel">
+        <h2 id="ablage-titel">Ablage</h2>
+        <p>
+          Die Pläne liegen <strong>nur in diesem Browser auf diesem Gerät</strong>. Ein anderer Browser, ein privates Fenster oder ein anderes Gerät sieht sie nicht, und wer die Browserdaten löscht, löscht sie mit. Sichern geht nur als Datei.
+        </p>
+        <p className={status.dauerhaft === false ? "warnung" : "nebentext"}>
+          {status.dauerhaft === true
+            ? "Dauerhaft gespeichert: Der Browser verwirft die Pläne nicht von sich aus bei Platzmangel."
+            : status.dauerhaft === false
+              ? "Nicht dauerhaft gespeichert: Der Browser darf die Pläne bei Platzmangel löschen."
+              : "Ob der Browser die Pläne dauerhaft behält, ist nicht bekannt."}
+          {status.belegt !== undefined && ` Belegt ${mb(status.belegt)} von etwa ${mb(status.verfuegbar)}.`}
+        </p>
+        {aktiv.length > 0 && (
+          <p className={ungesichert.length ? "warnung" : "nebentext"}>
+            {ungesichert.length === aktiv.length
+              ? "Kein Plan ist in seinem jetzigen Stand als Datei gesichert."
+              : ungesichert.length
+                ? `${ungesichert.length} von ${aktiv.length} Plänen sind seit der letzten Änderung nicht als Datei gesichert.`
+                : "Alle Pläne sind in ihrem jetzigen Stand als Datei gesichert."}
+          </p>
+        )}
+        <div className="aktionen">
+          <button type="button" disabled={aktiv.length === 0} onClick={() => void alleSichern()}>Alle Pläne als Datei sichern</button>
+          {status.dauerhaft === false && <button type="button" onClick={() => void dauerhaftBitten()}>Dauerhaft speichern anfragen</button>}
+        </div>
       </section>
 
       {papierkorb.length > 0 && (

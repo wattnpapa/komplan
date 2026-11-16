@@ -5,7 +5,8 @@ import { elternVon } from "../modell/baum";
 import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neueStelle, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, zielEineEbeneHoeher, type Ziel } from "../modell/plan";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan } from "../modell/typen";
 import { planPruefen } from "../modell/validierung";
-import { planAenderungenHoeren, planLadenMitRev, planSpeichern, planSpeichernWenn, staendeVon } from "../speicher/db";
+import { gesichertMerken, planAenderungenHoeren, planLadenMitRev, planSpeichern, planSpeichernWenn, staendeVon } from "../speicher/db";
+import { speicherFehlerText } from "./speicherfehler";
 import { planMigrieren } from "../modell/migration";
 import { planDuplizieren } from "../modell/plan";
 import { inhaltsSchluessel, seitStandGeaendert } from "../modell/stand";
@@ -119,6 +120,11 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
   const kette = useRef<Promise<void>>(Promise.resolve());
   const ersteUngespeichert = useRef<number | undefined>(undefined);
   const [druckZeit, setDruckZeit] = useState(jetzt());
+  /** Speichern scheitert (Text mit Grund) oder der Plan fehlt in der Ablage. */
+  const [stoerung, setStoerung] = useState<{ art: "fehler"; text: string } | { art: "fehlt" }>();
+  const fehltRef = useRef(false);
+  /** Gehen beim Verlassen Änderungen verloren, die nirgends gesichert sind? */
+  const gefaehrdet = useRef(false);
 
   const [ansichtId, setAnsichtId] = useState<Id>();
   const pdfDialog = useRef<HTMLDialogElement>(null);
@@ -219,23 +225,69 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
   const speichern = useCallback((): Promise<void> => {
     kette.current = kette.current.then(async () => {
       const v = store.version;
-      if (v === gespeicherteVersion.current || konfliktRef.current) return;
+      if (v === gespeicherteVersion.current || konfliktRef.current || fehltRef.current) return;
       try {
         const r = await planSpeichernWenn(store.zustand, rev.current);
+        if (!r.ok && r.grund === "fehlt") {
+          fehltRef.current = true;
+          setStoerung({ art: "fehlt" });
+          setSpeicherStand("fehler");
+          return;
+        }
         if (!r.ok) return konfliktSetzen(true);
         rev.current = r.rev;
         gespeicherteVersion.current = v;
+        setStoerung(undefined);
         notsicherungLoeschen(store.zustand.id);
         if (store.version === v) {
           ersteUngespeichert.current = undefined;
           setSpeicherStand("gespeichert");
         } else setSpeicherStand("ungespeichert");
-      } catch {
+      } catch (e) {
+        setStoerung({ art: "fehler", text: speicherFehlerText(e) });
         setSpeicherStand("fehler");
       }
     });
     return kette.current;
   }, [store, konfliktSetzen]);
+
+  useEffect(() => {
+    gefaehrdet.current = speicherStand === "fehler" || speicherStand === "konflikt";
+  }, [speicherStand]);
+
+  /** Plan als Datei sichern (Ausweg, wenn die Ablage nicht schreibt). */
+  const alsDateiSichern = async () => {
+    const p = store.zustand;
+    let staende: Awaited<ReturnType<typeof staendeVon>> = [];
+    try {
+      staende = await staendeVon(p.id);
+    } catch {
+      // Ablage nicht lesbar: dann eben ohne frühere Stände
+    }
+    herunterladen(jsonExport(p, staende), dateiname(p, "json"));
+    void gesichertMerken([p.id], jetzt());
+  };
+  const hierWiederSpeichern = async () => {
+    try {
+      rev.current = await planSpeichern(store.zustand);
+      gespeicherteVersion.current = store.version;
+      fehltRef.current = false;
+      setStoerung(undefined);
+      notsicherungLoeschen(store.zustand.id);
+      setSpeicherStand("gespeichert");
+      kurzmeldung("Plan wieder in der Ablage dieses Browsers gespeichert.");
+    } catch (e) {
+      setStoerung({ art: "fehler", text: speicherFehlerText(e) });
+    }
+  };
+  const erneutVersuchen = async () => {
+    if (gespeicherteVersion.current === store.version) gespeicherteVersion.current = -1;
+    await speichern();
+  };
+  const zurPlanliste = async () => {
+    if (gefaehrdet.current && !(await bestaetigen("Die letzten Änderungen sind nicht gespeichert. Erst „Als Datei sichern“ wählen, sonst gehen sie verloren. Trotzdem zur Planliste?", "Trotzdem verlassen", "Hierbleiben"))) return;
+    planOeffnen(undefined);
+  };
 
   // Autosave: kurz nach der letzten Änderung, beim Weitertippen spätestens nach SPEICHER_HOECHSTENS
   useEffect(() => {
@@ -255,13 +307,18 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
       void speichern();
     };
     const verborgen = () => document.visibilityState === "hidden" && sofort();
+    const vorVerlassen = (e: BeforeUnloadEvent) => {
+      sofort();
+      // Nur fragen, wenn Änderungen nirgends gesichert sind (Fehler oder Konflikt)
+      if (gefaehrdet.current) e.preventDefault();
+    };
     addEventListener("pagehide", sofort);
-    addEventListener("beforeunload", sofort);
+    addEventListener("beforeunload", vorVerlassen);
     document.addEventListener("visibilitychange", verborgen);
     return () => {
       sofort();
       removeEventListener("pagehide", sofort);
-      removeEventListener("beforeunload", sofort);
+      removeEventListener("beforeunload", vorVerlassen);
       document.removeEventListener("visibilitychange", verborgen);
     };
   }, [store, speichern]);
@@ -529,7 +586,10 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
       if (art === "pptx") herunterladen(await pptxExport(sz, `${p.name} – ${a.name}`), dateiname(p, "pptx", zusatz));
       else if (art === "svg") herunterladen(new Blob([await svgExport(sz, "#ffffff")], { type: "image/svg+xml" }), dateiname(p, "svg", zusatz));
       else if (art === "png" || art === "png-transparent") herunterladen(await pngExport(sz, 3, art === "png" ? "#ffffff" : undefined), dateiname(p, "png", zusatz));
-      else herunterladen(jsonExport(p, await staendeVon(p.id)), dateiname(p, "json"));
+      else {
+        herunterladen(jsonExport(p, await staendeVon(p.id)), dateiname(p, "json"));
+        void gesichertMerken([p.id], jetzt());
+      }
       return;
     } catch (e) {
       kurzmeldung(`Export fehlgeschlagen: ${(e as Error).message}`, "fehler");
@@ -554,6 +614,27 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
 
   return (
     <div className="editor">
+      {stoerung && (
+        <div className="konflikt-band" role="alert">
+          {stoerung.art === "fehler" ? (
+            <p>
+              <strong>Speichern fehlgeschlagen.</strong> {stoerung.text} Die Änderungen hier sind noch offen, aber nirgends gesichert.
+            </p>
+          ) : (
+            <p>
+              <strong>Dieser Plan ist in der Ablage dieses Browsers nicht mehr vorhanden</strong> (Browserdaten gelöscht oder in einem anderen Fenster endgültig gelöscht). Die Fassung hier ist noch offen.
+            </p>
+          )}
+          <div className="aktionen">
+            <button type="button" className="primaer" onClick={() => void alsDateiSichern()}>Als Datei sichern (JSON)</button>
+            {stoerung.art === "fehler" ? (
+              <button type="button" onClick={() => void erneutVersuchen()}>Erneut versuchen</button>
+            ) : (
+              <button type="button" onClick={() => void hierWiederSpeichern()}>Hier wieder speichern</button>
+            )}
+          </div>
+        </div>
+      )}
       {konflikt && (
         <div className="konflikt-band" role="alert">
           <p>
@@ -567,12 +648,12 @@ function EditorGeladen({ store, rev: startRev, ungespeichert, konflikt: startKon
         </div>
       )}
       <div className="werkzeugleiste" role="toolbar" aria-label="Werkzeuge">
-        <button type="button" onClick={() => planOeffnen(undefined)} title="Zur Planliste">
+        <button type="button" onClick={() => void zurPlanliste()} title="Zur Planliste">
           ← Pläne
         </button>
         <input className="plan-name" aria-label="Name des Plans" value={plan.name} onChange={(e) => aendern((p) => void (p.name = e.target.value), "name")} />
-        <span className={`speicher-stand ${speicherStand}`} role="status">
-          {speicherStand === "gespeichert" ? "✓ gespeichert" : speicherStand === "fehler" ? "Speichern fehlgeschlagen" : speicherStand === "konflikt" ? "nicht gespeichert: Konflikt" : "speichert …"}
+        <span className={`speicher-stand ${speicherStand}`} role="status" title="Gespeichert wird nur in diesem Browser auf diesem Gerät, nicht auf einem Server. Sichern und weitergeben: Export → JSON.">
+          {speicherStand === "gespeichert" ? "✓ gespeichert" : speicherStand === "fehler" && stoerung?.art === "fehlt" ? "nicht gespeichert: Plan fehlt" : speicherStand === "fehler" ? "Speichern fehlgeschlagen" : speicherStand === "konflikt" ? "nicht gespeichert: Konflikt" : "speichert …"}
         </span>
         <span className="trenner" />
         <button type="button" onClick={() => store.rueckgaengig()} disabled={!store.kannRueckgaengig()} title="Rückgängig (Strg+Z)">

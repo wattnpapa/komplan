@@ -1,7 +1,8 @@
 import { produce } from "immer";
 import { describe, expect, it } from "vitest";
 import { elternVon, loseStellenIds, nachfahren } from "./baum";
-import { dateiLesen, dateiSchreiben, DateiFehler } from "./migration";
+import { dateienLesen, dateiLesen, dateiSchreiben, DateiFehler, sammlungSchreiben, zumEinlesen } from "./migration";
+import { standEinfrieren } from "./stand";
 import { neuerPlan, neueStelle, planDuplizieren, stelleAnlegen, stelleDuplizieren, stelleLoeschen, umhaengen, verschieben, zielEineEbeneHoeher } from "./plan";
 import { planPruefen } from "./validierung";
 
@@ -112,6 +113,32 @@ describe("Datei", () => {
     const kaputt = JSON.parse(dateiSchreiben(plan));
     delete kaputt.plan.stellen;
     expect(() => dateiLesen(JSON.stringify(kaputt))).toThrow(/stellen/);
+  });
+
+  it("liest Einzeldatei und Sammelsicherung", () => {
+    const { plan } = beispiel();
+    const zweiter = neuerPlan({ name: "Zweiter" });
+    const s = standEinfrieren(plan, "2026-11-13T12:00");
+    expect(dateienLesen(dateiSchreiben(plan, [s]))).toEqual([{ plan, staende: [s] }]);
+    const gelesen = dateienLesen(sammlungSchreiben([{ plan, staende: [s] }, { plan: zweiter }], "2026-11-16T09:00"));
+    expect(gelesen.map((e) => e.plan.name)).toEqual([plan.name, "Zweiter"]);
+    expect(gelesen[0]!.staende).toEqual([s]);
+    expect(gelesen[1]!.staende).toEqual([]);
+    expect(() => dateienLesen('{"format":"komplan-sammlung"}')).toThrow(/keine Pläne/);
+  });
+
+  it("gibt Ständen beim Einlesen neue IDs, damit sie keine vorhandenen überschreiben", () => {
+    const { plan } = beispiel();
+    const s = standEinfrieren(plan, "2026-11-13T12:00");
+    const neu = zumEinlesen({ plan, staende: [s] }, false);
+    expect(neu.plan.id).toBe(plan.id);
+    expect(neu.staende[0]!.id).not.toBe(s.id);
+    expect(neu.staende[0]!.planId).toBe(plan.id);
+    const kopie = zumEinlesen({ plan, staende: [s] }, true);
+    expect(kopie.plan.id).not.toBe(plan.id);
+    expect(kopie.plan.name).toBe(`${plan.name} (eingelesen)`);
+    expect(kopie.staende[0]!.planId).toBe(kopie.plan.id);
+    expect(kopie.staende[0]!.id).not.toBe(s.id);
   });
 });
 

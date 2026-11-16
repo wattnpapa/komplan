@@ -101,6 +101,7 @@ Kein Auto-Layout. Elemente haben eigene Positionen in mm. Verbinder docken an **
 | PDF | jsPDF + svg2pdf.js, A4/A3, quer/hoch, „einpassen" oder Seitenteilung mit Überlappung und Seitenmarken | ja (`import()`) |
 | PPTX | pptxgenjs, Folie = Blattgröße, Formen editierbar | ja |
 | JSON | `{ format: "komplan", schemaVersion, plan, staende? }` | nein |
+| Sammelsicherung | `{ format: "komplan-sammlung", schemaVersion, gesichert, plaene: [{ plan, staende? }] }` | nein |
 | Teil-Link | deflate-raw + base64url im Fragment `#p=`, Grenze ~32 kB Fragment, sonst Hinweis auf JSON | nein |
 | Druck | Druck-CSS, nur das Blatt | nein |
 

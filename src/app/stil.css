@@ -290,3 +290,5 @@ input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
 .kontextmenue button.gefahr { color: var(--alarm); }
 /* Langes Drücken öffnet das eigene Menü, nicht die Textauswahl oder das Bildmenü des Browsers. */
 .gl-zeile, .zeichenflaeche .blatt { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+.ablage-karte p { margin: 0 0 var(--r-2); }
+.ablage-karte .aktionen { margin-top: var(--r-2); }

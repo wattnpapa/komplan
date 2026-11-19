@@ -11,6 +11,12 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-19",
+    punkte: [
+      "PDF „auf Seiten teilen“: die Breite der taktischen Zeichen lässt sich in Millimetern einstellen, Vorgabe 50 mm; Plan und Texte wachsen im selben Maß mit.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

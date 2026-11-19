@@ -2,6 +2,10 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-19
+
+- **Zeichenbreite im PDF** gilt für „auf Seiten teilen": Die ganze Szene wird so skaliert, dass die Grundform (x = 10 … 246 der 256er-viewBox) des größten Zeichens die gewählte Breite hat, Vorgabe 50 mm, erlaubt 5 bis 300 mm. Texte, Linien und Abstände wachsen mit, damit der Plan wie am Bildschirm aussieht; das Layout bleibt unverändert. „Einpassen" und Formulare mit festen Blättern (Fb Fü 76, FwDV 800) ignorieren den Wert. Bisher teilte „teilen" in Originalgröße (Zeichen etwa 16,6 mm breit); bestehende Ansichten mit „teilen" drucken jetzt größer. Gespeichert additiv als `Papier.zeichenBreite`.
+
 ## 2026-11-13 (M4)
 
 - **Fb Fü 76 aus dem Baum**: eigene Stelle = Fokus der Ansicht (Vorgabe: oberste Stelle). Obere Reihe: übergeordnete Stelle, dann die in der Ansicht gewählten Nachbarn, dann Geschwister (vier Plätze). Die vier Kanalfelder zeigen die ersten vier Funkangaben der eigenen Stelle mit ihrem Richtungspfeil. Unterstellte: vier im Raster, fünf in der Reihe „Takt. Einheit", weitere auf Folgeblättern. Kanal oben im Kasten einer Unterstellten: deren Funk mit Richtung ↑, sonst der Führungskanal (↓) der eigenen Stelle; unten: deren Funk mit Richtung ↓.

@@ -27,7 +27,7 @@ export function Fusszeile() {
         </div>
       </div>
       <p className="fuss-marke">
-        Lizenz EUPL-1.2. Ohne Anmeldung, ohne Server, ohne Reichweitenmessung. Kein amtliches Angebot des THW oder einer anderen Behörde.{" "}
+        Lizenz EUPL-1.2. Ohne Anmeldung, ohne Speicherung auf einem Server. Kein amtliches Angebot des THW oder einer anderen Behörde.{" "}
         <button type="button" className="link" onClick={() => neu.current?.showModal()} title="Was ist neu">
           Fassung {__APP_VERSION__} · {__FASSUNG__}
         </button>

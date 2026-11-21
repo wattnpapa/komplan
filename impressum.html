@@ -21,6 +21,23 @@
       if (kpModus === "feld" || kpModus === "nacht" || kpModus === "dunkel") document.documentElement.classList.add(kpModus + "-modus");
     } catch (e) { /* Privatmodus */ }
   </script>
+  <!-- Reichweitenmessung, siehe datenschutz.html Punkt 5. Widerspruch über
+       localStorage „skipgc“, den count.js selbst auswertet. Gezählt wird nur
+       der Pfad, nie das Fragment (Plan-IDs, Teil-Links mit Kontaktdaten). -->
+  <script>
+    var gc = (window.goatcounter = window.goatcounter || {});
+    gc.path = location.pathname || "/";
+    gc.no_events = true;
+    // Erst nach dem Laden einbinden: Antwortet gc.zgo.at nicht, dreht sonst
+    // die Ladeanzeige des Browsers weiter, obwohl die Seite längst bereit ist.
+    addEventListener("load", function () {
+      var zaehler = document.createElement("script");
+      zaehler.async = true;
+      zaehler.src = "https://gc.zgo.at/count.js";
+      zaehler.setAttribute("data-goatcounter", "https://komplan.goatcounter.com/count");
+      document.head.appendChild(zaehler);
+    });
+  </script>
 </head>
 <body>
   <div class="textseite">

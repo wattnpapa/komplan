@@ -6,6 +6,7 @@ import { neueId } from "../modell/id";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Linienart, Organisation, Plan, Stelle, ZeichenRef } from "../modell/typen";
 import { eigeneVorlage } from "../zeichen/eigen/vorlagen";
 import { zeichenName } from "../zeichen/katalog";
+import { ZEICHEN_BREITE_MAX, ZEICHEN_BREITE_MIN, ZEICHEN_BREITE_STANDARD } from "../szene/massstab";
 import { HILFE, Hilfe } from "./hilfe";
 import { stelleTitel } from "./gliederung";
 import { ZeichenBild } from "./zeichen-bild";
@@ -378,6 +379,18 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl, nurPlan }: 
               <option value="teilen">auf Seiten teilen</option>
             </select>
           </label>
+          <label className="feld schmal">
+              Zeichenbreite im PDF (mm)
+              <input
+                type="number"
+                inputMode="numeric"
+                min={ZEICHEN_BREITE_MIN}
+                max={ZEICHEN_BREITE_MAX}
+                step={1}
+                value={ansicht.papier.zeichenBreite ?? ZEICHEN_BREITE_STANDARD}
+                onChange={(e) => setzeAnsicht((a) => void (a.papier.zeichenBreite = e.target.value === "" ? undefined : Number(e.target.value)), `zb${ansicht.id}`)}
+              />
+            </label>
         </div>
       </details>
 

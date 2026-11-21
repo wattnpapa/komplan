@@ -116,6 +116,7 @@ export interface PdfWahl {
   format: "A4" | "A3";
   ausrichtung: "quer" | "hoch";
   grosseFlaeche: "einpassen" | "teilen";
+  zeichenBreite?: number;
   einstufungPosition: "kopf" | "kopf-und-fuss";
 }
 
@@ -126,6 +127,7 @@ export async function pdfExport(szene: Szene, plan: Plan, ansichtName: string, w
     format: wahl.format,
     ausrichtung: wahl.ausrichtung,
     grosseFlaeche: wahl.grosseFlaeche,
+    zeichenBreite: wahl.zeichenBreite,
     fuss: { titel: `${plan.name} – ${ansichtName}`, dtg: plan.stand.dtg, version: plan.stand.version },
     einstufung: plan.kopf.einstufung ? { text: plan.kopf.einstufung, position: wahl.einstufungPosition } : undefined,
     zeichenSchriftTtf: ttf || undefined,

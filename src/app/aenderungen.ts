@@ -14,6 +14,24 @@ export const AENDERUNGEN: Aenderung[] = [
     datum: "2026-11-21",
     punkte: [
       "Kommunikationsplan: Kontaktblöcke stehen in neuen Ansichten mittig unter dem Zeichen, der Plan wird schmaler und im PDF größer. Lose Stellen wie eine Regionalstelle rücken dicht an den Nachbarbaum heran.",
+      "Linien in Führungsorganisation und Kommunikationsplan enden mit etwas Abstand vor dem Zeichen und oberhalb der Stärkepunkte, statt durch einen Punkt zu laufen.",
+      "PDF: Taktische Zeichen nach einer gestrichelten Verbindung werden wieder mit durchgezogenem Rand gezeichnet.",
+      "Die Zeichenbreite fürs PDF gilt auch beim Einpassen als Obergrenze (Vorgabe 50 mm); das Feld steht jetzt immer im PDF-Dialog und in den Ansichtseigenschaften, der Dialog zeigt die tatsächliche Breite an.",
+    ],
+  },
+  {
+    datum: "2026-11-21",
+    punkte: [
+      "Kommunikationsskizze: Tel. und Fax stehen im Stellen-Kasten nur noch, wenn die Stelle eine Nummer hat; leere Zeilen zum Ausfüllen lassen sich je Kasten einschalten und sind in den Vordruck-Vorlagen an.",
+      "Kommunikationsskizze: Elemente lassen sich nicht mehr in die Kopfleiste ziehen; was schon darin liegt, meldet die Hinweisliste.",
+      "Kommunikationsplan: Der Kontaktblock rückt unter die Linie zu einer seitlich angehängten Stelle, statt von ihr durchgestrichen zu werden.",
+      "Funk an der Stelle: Rufgruppe bzw. Kanal steht als Hauptfeld oben und bekommt nach „+ Rufgruppe“ gleich den Cursor; ist nur „Bedingung“ gefüllt, weisen Editor und Prüfung darauf hin, ein Knopf übernimmt den Wert.",
+    ],
+  },
+  {
+    datum: "2026-11-19",
+    punkte: [
+      "PDF „auf Seiten teilen“: die Breite der taktischen Zeichen lässt sich in Millimetern einstellen, Vorgabe 50 mm; Plan und Texte wachsen im selben Maß mit.",
     ],
   },
   {
@@ -36,6 +54,7 @@ export const AENDERUNGEN: Aenderung[] = [
       "Hinweisliste mit Sprung zur betroffenen Stelle, Anzeige „offline“ im Kopf, neue Beispiele FwDV 800 und Einsatzübung Simbach (Fb Fü 76, Skizzen FGr FK und ZTr).",
       "Zeichen ELO, PuMA und BW mit Langform (Einsatzleitung Ort, Presse- und Medienarbeit, Bundeswehr) in Suche und Hilfe; PuMA steht jetzt als Führungsstelle statt als Versorgungsstelle.",
       "Dateinamen von Exporten enthalten keine Umlaute und Sonderzeichen mehr; vorher hieß die Datei in manchen Browsern nur „download“.",
+      "Anonyme Reichweitenmessung mit GoatCounter: gezählt wird nur, dass die Seite aufgerufen wurde, nie ein Plan oder Link-Inhalt; auf der Datenschutzseite lässt sich mit „Nicht mitzählen“ widersprechen.",
     ],
   },
 ];

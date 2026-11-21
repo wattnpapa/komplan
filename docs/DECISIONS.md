@@ -6,6 +6,17 @@ Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
 - **Kontaktblock standardmäßig unter dem Zeichen**, mittig unter Zeichen und Beschriftung. Ein Block rechts macht jede Stelle etwa um die Blockbreite breiter; bei sechs Unterstellten wird der Plan dadurch so breit, dass er auf A4 quer nur noch knapp halb so groß gedruckt wird. Vorhandene Ansichten behalten ihre Einstellung, die Vorlage Schadstoffunfall bleibt bei „rechts" wie das Vorbild.
 - **Mehrere Wurzeln dicht nebeneinander.** Der Wald legt Teilbäume nicht mehr als ganze Rechtecke nebeneinander, sondern schiebt jeden weiteren Baum so weit nach links, bis ein Kasten oder eine Linie auf gleicher Höhe den Abstand unterschreitet. Eine lose Stelle (z. B. Regionalstelle) steht damit neben der Wurzel des Nachbarbaums statt links neben allen Unterstellten. Innerhalb eines Baums gilt weiter das Block-Layout.
+- **Tel./Fax im Skizzen-Kasten nur bei Bedarf**: Ein Stellen-Kasten zeigt nur Kontakte, die die Stelle hat. Neues additives Feld `SkStelle.leereTelFax` für leere Zeilen zum Ausfüllen; die Vorlagen Fb Fü 77 Skizze 1, 3, 4 und 5 setzen es, weil sie Vordrucke sind. Neue Kästen und die Kästen aus „Skizze aus Stelle" sind 16 mm hoch und wachsen mit dem Inhalt; die eigene Stelle bleibt 30 mm hoch, damit die Anschlüsse am Kasten und nicht am Zeichen andocken.
+- **Zeichenbereich der Skizze beginnt bei 30 mm** (Kopfleiste 10–28,5 mm plus Luft). Verschieben, Stupsen, Ablegen und Größe ändern halten Elemente darunter; liegt eines schon in der Kopfleiste, geht es nur noch nach unten. Die Hinweisliste meldet solche Elemente (`skizze-im-kopf`, Warnung). Bestehende Lagen werden nicht automatisch verschoben.
+- **Kontaktblock unter seitlichen Linien**: Läuft auf der Seite des Kontaktblocks eine Linie auf Höhe der Zeichenmitte (seitlich angehängte Stelle, Kamm), beginnt der Block 1,2 mm unter dieser Linie statt an der Zeichenoberkante.
+
+## 2026-11-21
+
+- **Zeichenbreite auch beim Einpassen**: Der Plan wird so groß wie möglich auf eine Seite gesetzt, die Zeichen aber höchstens so breit wie eingestellt (Vorgabe 50 mm). Passt der Plan dafür nicht auf die Seite, werden die Zeichen kleiner; der PDF-Dialog nennt dann die erreichte Breite. Die bisherige Grenze „höchstens doppelte Größe" gilt nur noch ohne Zeichenbreite. Skizzen (festes Blatt) und Formulare mit festen Blättern bekommen keine Zeichenbreite; „teilen" druckt dort wie früher in Originalgröße.
+
+## 2026-11-19
+
+- **Zeichenbreite im PDF** gilt für „auf Seiten teilen": Die ganze Szene wird so skaliert, dass die Grundform (x = 10 … 246 der 256er-viewBox) des größten Zeichens die gewählte Breite hat, Vorgabe 50 mm, erlaubt 5 bis 300 mm. Texte, Linien und Abstände wachsen mit, damit der Plan wie am Bildschirm aussieht; das Layout bleibt unverändert. „Einpassen" und Formulare mit festen Blättern (Fb Fü 76, FwDV 800) ignorieren den Wert. Bisher teilte „teilen" in Originalgröße (Zeichen etwa 16,6 mm breit); bestehende Ansichten mit „teilen" drucken jetzt größer. Gespeichert additiv als `Papier.zeichenBreite`.
 
 ## 2026-11-13 (M4)
 
@@ -63,7 +74,7 @@ Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 ## 2026-11-13 (Planung)
 
 - **Stack nach erfassungsbogen, nicht einsatzauftrag.** Die Repos widersprechen sich bei der Oberfläche (Vanilla-TS gegen React 19) und beim Service Worker (eigenes Plugin gegen vite-plugin-pwa). erfassungsbogen hat den neueren Stand (letzter Commit 12.11.2026 gegen 30.10.2026) und ist das Repo, aus dem einsatzauftrag sein Design-System kopiert hat. Aus einsatzauftrag kommen trotzdem das Satzmodell-Muster (Szene aus Zeichenelementen in mm), jsPDF, der Teil-Link mit `CompressionStream` und der GitHub-Pages-Workflow.
-- **Keine Reichweitenmessung.** Beide Schwester-Apps nutzen GoatCounter; der Auftrag verbietet externe Requests zur Laufzeit. CSP ohne Fremd-Host.
+- ~~**Keine Reichweitenmessung.**~~ Überholt durch den Eintrag vom 2026-11-13 (Reichweitenmessung).
 - **Keine Diagramm-Bibliothek, eigenes Layout.** Begründung in ARCHITECTURE.md Abschnitt 3.
 - **Zeichen-Lizenz.** Upstream-README (Stand Release v2.0.0): Code CC BY 4.0, fertige Zeichen aus `release.zip` CC0 1.0; Schrift Roboto Slab Apache 2.0; `LICENSE` im Repo ist der CC-BY-4.0-Text. Das README von `wattnpapa/bos-taktische-zeichen` nennt für dieselben Zeichen dagegen CC BY 4.0. komplan nennt Jonas Köritz in Impressum und Über-Dialog in jedem Fall mit Link und Lizenzangabe, damit beide Lesarten erfüllt sind.
 - **Zeichen-Version v2.0.0** festgeschrieben (wie bos-taktische-zeichen), Aktualisierung per Skript mit Diff-Prüfung.
@@ -71,3 +82,11 @@ Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 - **Bezeichner deutsch** (`Stelle` statt `Node`, `Ansicht` statt `View`), wie in den Schwester-Repos.
 - **DTG-Normalform** `TTHHMMMONJJ` mit Monat in Großbuchstaben (`172027NOV26`). Der Parser nimmt Groß- und Kleinschreibung an (`172027oct15`, `010730JUN16`), englische und deutsche Monatskürzel (OKT/OCT, MAI/MAY, DEZ/DEC). Anzeige wählbar.
 - **Zeitangaben ohne Zeitzone** (`2026-11-13T15:00`). Gültigkeiten und Stand beziehen sich auf die Ortszeit des Stabs.
+
+## 2026-11-13 (Reichweitenmessung)
+
+- **Reichweitenmessung mit GoatCounter**, wie in den Schwester-Apps, auf ausdrücklichen Wunsch des Auftraggebers; ersetzt die frühere Festlegung „Keine Reichweitenmessung".
+- **Nie ein Fragment senden.** Im Fragment stehen Plan-IDs und bei Teil-Links der ganze Plan mit Kontaktdaten. `window.goatcounter` setzt deshalb `path` fest auf `location.pathname`, `no_events` ist gesetzt; count.js zählt ohnehin nicht beim Hash-Wechsel. `e2e/zaehlung.spec.ts` prüft, dass in keiner Zähl-URL `#`, `p=` oder eine Plan-ID steht.
+- **Skript erst nach dem load-Event**, mit https://, damit eine hängende Verbindung zu gc.zgo.at nicht die Ladeanzeige hält. Widerspruch über localStorage `skipgc` (Kästchen „Nicht mitzählen" auf der Datenschutzseite).
+- **CSP** nur um `https://gc.zgo.at` (script-src) und `https://komplan.goatcounter.com` (img-src, connect-src) erweitert. count.js wird vom Service Worker nicht gecacht; offline fällt die Zählung still aus.
+- **E2E-Tests** brechen Requests an gc.zgo.at und *.goatcounter.com zentral per Fixture ab (`e2e/fixture.ts`).

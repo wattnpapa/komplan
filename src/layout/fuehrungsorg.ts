@@ -2,8 +2,8 @@
  * Führungsorganisation: Plan + Ansicht → Szene. Jede Stelle wird zu einem
  * Kasten aus Zeichen, Nummer, Beschriftung und Zusatzzeilen; das Baum-Layout
  * ordnet die Kästen, danach werden Linien, Hervorhebungen und Verbindungen
- * gezeichnet. Linien liegen hinter den Zeichen, damit sie an der
- * Zeichenkante enden, auch bei Haus- oder Rautenform.
+ * gezeichnet. Linien enden mit etwas Luft vor dem Zeichen, von oben über
+ * den Stärkepunkten, damit sie keinen Punkt durchstoßen.
  */
 
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Plan, Stelle } from "../modell/typen";
@@ -22,13 +22,20 @@ const SCHRIFT_ZUSATZ = 8.5;
 const SCHRIFT_NUMMER = 12;
 const STAPEL_VERSATZ = 1.6;
 
-/** Grenzen der Zeichenform in der 256er-viewBox (alle Grundformen der Sammlung). */
-const Z = { links: 10 / 256, rechts: 246 / 256, oben: 64 / 256, unten: 192 / 256, mitte: 128 / 256, fuss: 228 / 256 };
+/**
+ * Grenzen der Zeichenform in der 256er-viewBox (alle Grundformen der Sammlung).
+ * `staerke`: Oberkante der Stärkepunkte und -striche über dem Zeichen.
+ */
+const Z = { links: 10 / 256, rechts: 246 / 256, oben: 64 / 256, unten: 192 / 256, mitte: 128 / 256, fuss: 228 / 256, staerke: 34 / 256 };
+/** Luft zwischen Linienende und Zeichen in mm. */
+export const LINIEN_LUECKE = 0.8;
 
 type BaumAnsicht = FuehrungsorgAnsicht | KomplanAnsicht;
 
 interface Kasten {
   knoten: LKnoten;
+  /** Oberkante und linke Kante der Zeichenform im Kasten (Lage des Kontaktblocks). */
+  form: { oben: number; links: number };
   /** Elemente relativ zur linken oberen Ecke des Kastens. */
   elemente: Element[];
 }
@@ -48,6 +55,7 @@ function stelleKasten(stelle: Stelle, eingeklappt: number): Kasten {
     }
     return {
       knoten: knoten(stelle, { b, h, ax: b / 2, oben: 0, unten: h, mitteY: h / 2, zLinks: 0, zRechts: b }),
+      form: { oben: 0, links: 0 },
       elemente,
     };
   }
@@ -119,32 +127,44 @@ function stelleKasten(stelle: Stelle, eingeklappt: number): Kasten {
       b,
       h,
       ax: zx + s / 2,
-      oben: zy + s * Z.oben,
-      unten: zy + s * Z.unten,
+      // über den Stärkepunkten auch des hintersten Stapelzeichens
+      oben: zy - stapelB + s * Z.staerke - LINIEN_LUECKE,
+      unten: zy + s * Z.unten + LINIEN_LUECKE,
       mitteY: zy + s * Z.mitte,
-      zLinks: zx + s * Z.links,
-      zRechts: zx + s * Z.rechts + stapelB,
+      zLinks: zx + s * Z.links - LINIEN_LUECKE,
+      zRechts: zx + s * Z.rechts + stapelB + LINIEN_LUECKE,
     }),
+    form: { oben: zy + s * Z.oben, links: zx + s * Z.links },
     elemente,
   };
 }
 
 const BLOCK_ABSTAND = 2.5;
 
-/** Hängt den Kontaktblock rechts, links oder unter den Kasten einer Stelle. */
-function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "links" | "unten"): void {
+/** Abstand des Kontaktblocks unter einer waagerechten Linie auf Höhe der Zeichenmitte. */
+const UNTER_LINIE = 1.2;
+
+/**
+ * Hängt den Kontaktblock rechts, links oder unter den Kasten einer Stelle.
+ * `linieAufSeite`: auf dieser Seite läuft eine Linie auf Höhe der
+ * Zeichenmitte (seitlich angehängte Stelle, Kamm); der Block beginnt dann
+ * unter der Linie statt an der Zeichenoberkante.
+ */
+function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "links" | "unten", linieAufSeite: { links: boolean; rechts: boolean }): void {
   const k = kasten.knoten;
+  const f = kasten.form;
+  const yBlock = (seite: "links" | "rechts") => (linieAufSeite[seite] ? k.mitteY + UNTER_LINIE : Math.max(0, f.oben - 1));
   if (lage === "rechts") {
     const x = k.b + BLOCK_ABSTAND;
-    const y = Math.max(0, k.oben - 1);
+    const y = yBlock("rechts");
     kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, x, y)));
     k.b = x + block.b;
     k.h = Math.max(k.h, y + block.h);
   } else if (lage === "links") {
     const dx = block.b + BLOCK_ABSTAND;
     kasten.elemente = kasten.elemente.map((e) => verschiebeElement(e, dx, 0));
-    k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx;
-    const y = Math.max(0, k.oben - 1);
+    k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx; f.links += dx;
+    const y = yBlock("links");
     kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, 0, y)));
     k.h = Math.max(k.h, y + block.h);
   } else {
@@ -153,7 +173,7 @@ function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "l
     const dx = Math.max(0, block.b / 2 - k.ax);
     if (dx > 0) {
       kasten.elemente = kasten.elemente.map((e) => verschiebeElement(e, dx, 0));
-      k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx;
+      k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx; f.links += dx;
     }
     const x = k.ax - block.b / 2;
     const y = k.h + 1;
@@ -189,7 +209,8 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
   const kaesten = new Map<Id, Kasten>();
   const besucht = new Set<Id>();
 
-  const bauen = (id: Id): LKnoten | undefined => {
+  /** `linieVon`: Seite, auf der die Linie von der übergeordneten Stelle ankommt. */
+  const bauen = (id: Id, linieVon?: "links" | "rechts"): LKnoten | undefined => {
     const stelle = plan.stellen[id];
     if (!stelle || besucht.has(id)) return undefined;
     besucht.add(id);
@@ -208,15 +229,19 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     k.versatz = layout.versatz;
     // Beschriftung unter dem Zeichen: die Linie nach unten beginnt unter dem Text.
     if ((stelle.beschriftungPosition ?? "unten") === "unten" && (stelle.beschriftung.trim() || stelle.zusatzzeilen.some((z) => z.trim()))) k.unten = k.h;
+    const sichtbareKinder = eingeklappt ? [] : stelle.kinder.filter((c) => plan.stellen[c] && !besucht.has(c) && !ansicht.knoten[c]?.ausgeblendet);
     if (mitBlock && blockLage !== "aus") {
       const block = kontaktblock(stelle, ansicht as KomplanAnsicht, plan.stand.zeitpunkt);
-      if (block.h > 0) blockAnhaengen(kasten, block, blockLage);
+      const seitlich = (lage: string) => sichtbareKinder.some((c) => plan.stellen[c]!.anbindung.lage === lage);
+      const linieAufSeite = { links: linieVon === "links" || seitlich("seitlich-links"), rechts: linieVon === "rechts" || seitlich("seitlich-rechts") };
+      if (block.h > 0) blockAnhaengen(kasten, block, blockLage, linieAufSeite);
     }
     if (!eingeklappt) {
       for (const kindId of stelle.kinder) {
-        const kind = bauen(kindId);
-        if (!kind) continue;
-        const lage = plan.stellen[kindId]!.anbindung.lage;
+        const lage = plan.stellen[kindId]?.anbindung.lage;
+        // seitlich rechts angehängt: Linie kommt von links an; Kamm: ebenfalls von links
+        const kind = bauen(kindId, lage === "seitlich-rechts" || (lage === "unten" && k.richtung === "vertikal") ? "links" : lage === "seitlich-links" ? "rechts" : undefined);
+        if (!kind || !lage) continue;
         if (lage === "unten") k.kinder.push(kind);
         else k.seitlich.push({ knoten: kind, seite: lage === "seitlich-links" ? "links" : "rechts" });
       }
@@ -224,7 +249,7 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     return k;
   };
 
-  const wurzeln = sichtbareWurzeln(plan, ansicht).map(bauen).filter((k): k is LKnoten => !!k);
+  const wurzeln = sichtbareWurzeln(plan, ansicht).map((id) => bauen(id)).filter((k): k is LKnoten => !!k);
   const elemente: Element[] = [];
   if (wurzeln.length === 0) return { breite: 2 * RAND + 80, hoehe: 2 * RAND + 20, elemente };
 

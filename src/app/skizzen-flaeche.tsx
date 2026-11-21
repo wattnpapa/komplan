@@ -3,7 +3,7 @@ import type { Draft } from "immer";
 import { szeneZuSvg } from "../ausgabe/svg";
 import { elementRahmen } from "../layout/skizze";
 import { naechsterPort, verbinderWeg, type Punkt } from "../layout/route";
-import { elementAnlegen, FARBE_FUNK, FARBE_SCHWARZ } from "../modell/skizze";
+import { dyBegrenzen, elementAnlegen, FARBE_FUNK, FARBE_SCHWARZ, ZEICHENBEREICH_OBEN } from "../modell/skizze";
 import type { Id, Plan, Rahmen, SkizzenAnsicht, SkizzenElement } from "../modell/typen";
 import type { Szene } from "../szene/typen";
 
@@ -126,7 +126,7 @@ export function SkizzenFlaeche({
       return;
     }
     if (platzierer) {
-      const neu = { ...platzierer(fang(p[0]), fang(p[1])), x: fang(p[0]), y: fang(p[1]) };
+      const neu = { ...platzierer(fang(p[0]), fang(p[1])), x: fang(p[0]), y: Math.max(fang(p[1]), ZEICHENBEREICH_OBEN) };
       let id = "";
       aendern((pl) => void (id = elementAnlegen(skizze(pl) as SkizzenAnsicht, neu)));
       setAuswahl([id]);
@@ -170,6 +170,7 @@ export function SkizzenFlaeche({
           dx = fang(erste.x + dx) - erste.x;
           dy = fang(erste.y + dy) - erste.y;
         }
+        dy = dyBegrenzen([...modus.lagen].map(([id, l]) => ({ art: ansicht.elemente[id]?.art ?? "verbinder", y: l.y })), dy);
         aendern((pl) => {
           const a = skizze(pl);
           for (const [id, l] of modus.lagen) {
@@ -189,7 +190,7 @@ export function SkizzenFlaeche({
         const g = modus.griff;
         if (g.includes("w")) { r.x = fang(modus.r.x + dx); r.b = modus.r.x + modus.r.b - r.x; }
         if (g.includes("o")) r.b = fang(modus.r.x + modus.r.b + dx) - modus.r.x;
-        if (g.startsWith("n")) { r.y = fang(modus.r.y + dy); r.h = modus.r.y + modus.r.h - r.y; }
+        if (g.startsWith("n")) { r.y = Math.max(fang(modus.r.y + dy), Math.min(modus.r.y, ZEICHENBEREICH_OBEN)); r.h = modus.r.y + modus.r.h - r.y; }
         if (g.startsWith("s")) r.h = fang(modus.r.y + modus.r.h + dy) - modus.r.y;
         if (r.b < 2 || r.h < 2) return;
         aendern((pl) => {
@@ -265,7 +266,7 @@ export function SkizzenFlaeche({
     e.preventDefault();
     const [x, y] = mm(e);
     let id = "";
-    aendern((pl) => void (id = elementAnlegen(skizze(pl) as SkizzenAnsicht, { art: "stelle", stelle: stelleId, x: fang(x), y: fang(y), b: 62, h: 28 })));
+    aendern((pl) => void (id = elementAnlegen(skizze(pl) as SkizzenAnsicht, { art: "stelle", stelle: stelleId, x: fang(x), y: Math.max(fang(y), ZEICHENBEREICH_OBEN), b: 62, h: 16 })));
     setAuswahl([id]);
   };
 

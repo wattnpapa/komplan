@@ -13,6 +13,7 @@ export const AENDERUNGEN: Aenderung[] = [
   {
     datum: "2026-11-21",
     punkte: [
+      "PDF: Taktische Zeichen nach einer gestrichelten Verbindung werden wieder mit durchgezogenem Rand gezeichnet.",
       "Die Zeichenbreite fürs PDF gilt auch beim Einpassen als Obergrenze (Vorgabe 50 mm); das Feld steht jetzt immer im PDF-Dialog und in den Ansichtseigenschaften, der Dialog zeigt die tatsächliche Breite an.",
     ],
   },

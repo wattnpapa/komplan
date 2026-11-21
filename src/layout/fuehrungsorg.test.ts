@@ -35,6 +35,24 @@ describe("Führungsorganisation", () => {
     expect(ys[0]!).toBeGreaterThan(r.get(tel)!.y + 10);
   });
 
+  it("lässt Linien vor dem Zeichen und über den Stärkepunkten enden", () => {
+    const { plan, tel, eas } = einsatzstruktur();
+    const szene = fuehrungsorgSzene(plan, neueFuehrungsorgAnsicht());
+    const r = zeichenRahmen(szene);
+    const linien = szene.elemente.filter((e) => e.art === "linie" && e.herkunft?.rolle === "unterstellung");
+    for (const id of eas) {
+      const z = r.get(id)!;
+      const ende = Math.max(...linien.filter((l) => l.art === "linie" && l.herkunft?.stelle === id).flatMap((l) => (l.art === "linie" ? l.punkte.map(([, y]) => y) : [])));
+      // Stärkepunkte beginnen bei 34/256 der Zeichengröße, die Form bei 64/256
+      expect(ende).toBeLessThan(z.y + z.g * (34 / 256));
+      expect(ende).toBeGreaterThan(z.y);
+    }
+    // Stamm beginnt unterhalb der Zeichenform des Elternknotens, nicht an der Kante
+    const tz = r.get(tel)!;
+    const anfang = Math.min(...linien.flatMap((l) => (l.art === "linie" ? l.punkte.filter(([x]) => Math.abs(x - (tz.x + tz.g / 2)) < 0.01).map(([, y]) => y) : [])));
+    expect(anfang).toBeGreaterThan(tz.y + tz.g * (192 / 256));
+  });
+
   it("überlappt keine Zeichen", () => {
     const { plan } = einsatzstruktur();
     const ansicht = neueFuehrungsorgAnsicht();

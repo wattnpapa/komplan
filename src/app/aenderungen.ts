@@ -11,6 +11,10 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-21",
+    punkte: ["Linien in Führungsorganisation und Kommunikationsplan enden mit etwas Abstand vor dem Zeichen und oberhalb der Stärkepunkte, statt durch einen Punkt zu laufen."],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

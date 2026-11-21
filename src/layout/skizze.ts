@@ -11,7 +11,7 @@
 import type { Funkangabe, Kontakt, Plan, Rahmen, SkAnschluss, SkizzenAnsicht, SkizzenElement, SkNstTabelle, SkStelle, Stelle } from "../modell/typen";
 import type { Element, Herkunft, Szene } from "../szene/typen";
 import { kopfleiste } from "../szene/kopfleiste";
-import { textBreite, zeilenHoehe } from "../szene/text";
+import { textBreite, umbrechen, zeilenHoehe } from "../szene/text";
 import { funkText } from "./kontaktblock";
 import { verbinderWeg } from "./route";
 
@@ -254,7 +254,8 @@ function elementZeichnen(e: SkizzenElement, plan: Plan, ansicht: SkizzenAnsicht,
       const text = e.text ?? (s ? s.funkrufname || [s.nummer, s.beschriftung].filter(Boolean).join(" ") : "");
       const g = Math.min(e.b, e.h);
       const aus: Element[] = [{ art: "zeichen", x: e.x + (e.b - g) / 2, y: e.y, groesse: g, ref, herkunft: h }];
-      text.split("\n").forEach((z, i) => aus.push({ art: "text", x: e.x + e.b / 2, y: e.y + g * 0.94 + (i + 1) * zeilenHoehe(7.5) * 0.9, text: z, groesse: 7.5, anker: "middle", herkunft: h }));
+      // Rufnamen breiter als das Zeichen umbrechen, damit nebeneinander stehende Beschriftungen sich nicht überlagern.
+      umbrechen(text, 7.5, e.b + 2).forEach((z, i) => aus.push({ art: "text", x: e.x + e.b / 2, y: e.y + g * 0.94 + (i + 1) * zeilenHoehe(7.5) * 0.9, text: z, groesse: 7.5, anker: "middle", herkunft: h }));
       return aus;
     }
     case "text":

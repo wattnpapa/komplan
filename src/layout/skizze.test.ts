@@ -5,6 +5,7 @@ import type { Plan, SkizzenAnsicht } from "../modell/typen";
 import { planPruefen } from "../modell/validierung";
 import type { Element } from "../szene/typen";
 import { naechsterPort, route } from "./route";
+import { textBreite } from "../szene/text";
 import { skizzeSzene } from "./skizze";
 
 const texte = (e: Element[]) => e.filter((x): x is Extract<Element, { art: "text" }> => x.art === "text").map((x) => x.text);
@@ -72,6 +73,26 @@ describe("Kommunikationsskizze", () => {
     for (let i = 4; i <= 6; i++) stelleAnlegen(plan, neueStelle({ beschriftung: `UEAL ${i}` }), { unter: eal });
     const a = skizzeAusStelle(plan, eal);
     expect(Object.values(a.elemente).filter((e) => e.art === "zeichen")).toHaveLength(6);
+  });
+
+  it("bricht lange Rufnamen unter Zeichen um, nebeneinander überlagert sich nichts", () => {
+    const { plan, eal } = beispiel();
+    for (const ort of ["Musterstadt-Nord", "Musterhausen", "Beispieldorf", "Quackenmusterbrück"]) {
+      stelleAnlegen(plan, neueStelle({ beschriftung: ort, funkrufname: `Heros ${ort} 21/10` }), { unter: eal });
+    }
+    const a = skizzeAusStelle(plan, eal);
+    const unter = skizzeSzene(plan, a).elemente.filter((e): e is Extract<typeof e, { art: "text" }> => e.art === "text" && e.anker === "middle" && e.groesse === 7.5);
+    const zeilen = new Map<number, Array<[number, number]>>();
+    for (const t of unter) {
+      const b = textBreite(t.text, t.groesse, t.fett);
+      const y = Math.round(t.y * 10);
+      zeilen.set(y, [...(zeilen.get(y) ?? []), [t.x - b / 2, t.x + b / 2]]);
+    }
+    for (const spannen of zeilen.values()) {
+      spannen.sort((p, q) => p[0] - q[0]);
+      for (let i = 1; i < spannen.length; i++) expect(spannen[i]![0]).toBeGreaterThanOrEqual(spannen[i - 1]![1]);
+    }
+    expect(unter.map((t) => t.text)).toContain("21/10");
   });
 
   it("taktisch blendet Geräte, NSt-Tabelle und Draht aus, technisch zeigt sie", () => {

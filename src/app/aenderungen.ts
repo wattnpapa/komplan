@@ -11,6 +11,12 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-21",
+    punkte: [
+      "Kommunikationsskizze: lange Rufnamen unter taktischen Zeichen werden umgebrochen und überlagern sich nicht mehr mit dem Nachbarn.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

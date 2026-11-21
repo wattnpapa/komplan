@@ -22,6 +22,7 @@ export const AENDERUNGEN: Aenderung[] = [
       "Kommunikationsskizze: Tel. und Fax stehen im Stellen-Kasten nur noch, wenn die Stelle eine Nummer hat; leere Zeilen zum Ausfüllen lassen sich je Kasten einschalten und sind in den Vordruck-Vorlagen an.",
       "Kommunikationsskizze: Elemente lassen sich nicht mehr in die Kopfleiste ziehen; was schon darin liegt, meldet die Hinweisliste.",
       "Kommunikationsplan: Der Kontaktblock rückt unter die Linie zu einer seitlich angehängten Stelle, statt von ihr durchgestrichen zu werden.",
+      "Funk an der Stelle: Rufgruppe bzw. Kanal steht als Hauptfeld oben und bekommt nach „+ Rufgruppe“ gleich den Cursor; ist nur „Bedingung“ gefüllt, weisen Editor und Prüfung darauf hin, ein Knopf übernimmt den Wert.",
     ],
   },
   {

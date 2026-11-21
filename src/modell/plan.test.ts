@@ -104,4 +104,12 @@ describe("Hinweise", () => {
     plan.stellen[ea1]!.kinder.push(tel);
     expect(planPruefen(plan).map((h) => h.regel)).toContain("zyklus");
   });
+
+  it("meldet Funk, bei dem nur die Bedingung gefüllt ist", () => {
+    const { plan, ea1 } = beispiel();
+    plan.stellen[ea1]!.funk.push({ id: "f", art: "digital", betrieb: "TMO", rufgruppe: "", bedingung: "T_MUSTER-2", richtung: "unten" });
+    expect(planPruefen(plan).find((h) => h.regel === "funk-nur-bedingung")?.text).toContain("T_MUSTER-2");
+    plan.stellen[ea1]!.funk[0] = { id: "f", art: "digital", betrieb: "TMO", rufgruppe: "T_MUSTER-2", bedingung: "bei Ausfall TMO", richtung: "unten" };
+    expect(planPruefen(plan).map((h) => h.regel)).not.toContain("funk-nur-bedingung");
+  });
 });

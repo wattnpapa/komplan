@@ -132,4 +132,30 @@ describe("Führungsorganisation", () => {
       }
     }
   });
+  it("Kontaktblock rückt unter eine freie Verbindung (Regionalstelle gestrichelt zur Führungsstelle)", () => {
+    const plan = neuerPlan({ zeit: "2026-11-13T10:00" });
+    const funk = (rg: string) => [{ id: rg, art: "digital" as const, betrieb: "TMO" as const, rufgruppe: rg, richtung: "unten" as const }];
+    const luk = stelleAnlegen(plan, eal({ beschriftung: "Musterdorf", funkrufname: "Heros Musterdorf 85", funk: funk("T_MUSTER-1") }));
+    const fst = stelleAnlegen(plan, eal({ beschriftung: "Nordwest", funkrufname: "Heros Nordwest 10", funk: funk("T_MUSTER-2") }));
+    for (let i = 0; i < 3; i++) stelleAnlegen(plan, eal({ beschriftung: `TZ ${i}`, funk: funk(`T_MUSTER-${i + 3}`) }), { unter: fst });
+    plan.verbindungen = { v: { id: "v", von: luk, nach: fst, art: "zusammenarbeit", linie: "gestrichelt" } };
+    for (const lage of ["rechts", "links"] as const) {
+      const szene = fuehrungsorgSzene(plan, neueKomplanAnsicht({ kontaktLage: lage }));
+      const v = szene.elemente.find((e): e is Extract<typeof e, { art: "linie" }> => e.art === "linie" && e.herkunft?.rolle === "verbindung")!;
+      expect(v).toBeDefined();
+      for (let i = 1; i < v.punkte.length; i++) {
+        const [[ax, ay], [bx, by]] = [v.punkte[i - 1]!, v.punkte[i]!];
+        if (Math.abs(ay - by) > 1e-6) continue;
+        const [x0, x1] = [Math.min(ax, bx), Math.max(ax, bx)];
+        for (const t of szene.elemente) {
+          if (t.art !== "text" || t.herkunft?.rolle !== "kontakt") continue;
+          const breite = textBreite(t.text, t.groesse, !!t.fett);
+          const tx0 = t.anker === "end" ? t.x - breite : t.anker === "middle" ? t.x - breite / 2 : t.x;
+          if (tx0 + breite < x0 || tx0 > x1) continue;
+          const oben = t.y - t.groesse * 0.3528 * 0.75;
+          expect(oben > ay || t.y + 0.5 < ay, `${lage}: „${t.text}" kreuzt die Verbindung bei y=${ay.toFixed(1)}`).toBe(true);
+        }
+      }
+    }
+  });
 });

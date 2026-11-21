@@ -206,8 +206,10 @@ export interface FuehrungsorgOptionen {
 
 /** Plan + Baum-Ansicht → Szene. */
 export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: FuehrungsorgOptionen = {}): Szene {
-  const kaesten = new Map<Id, Kasten>();
-  const besucht = new Set<Id>();
+  let kaesten = new Map<Id, Kasten>();
+  let besucht = new Set<Id>();
+  /** Seiten, an denen eine freie Verbindung (gestrichelt/gepunktet) die Stelle verlässt. */
+  let verbindungsSeiten = new Map<Id, { links: boolean; rechts: boolean }>();
 
   /** `linieVon`: Seite, auf der die Linie von der übergeordneten Stelle ankommt. */
   const bauen = (id: Id, linieVon?: "links" | "rechts"): LKnoten | undefined => {
@@ -233,7 +235,11 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     if (mitBlock && blockLage !== "aus") {
       const block = kontaktblock(stelle, ansicht as KomplanAnsicht, plan.stand.zeitpunkt);
       const seitlich = (lage: string) => sichtbareKinder.some((c) => plan.stellen[c]!.anbindung.lage === lage);
-      const linieAufSeite = { links: linieVon === "links" || seitlich("seitlich-links"), rechts: linieVon === "rechts" || seitlich("seitlich-rechts") };
+      const verbindung = verbindungsSeiten.get(id);
+      const linieAufSeite = {
+        links: linieVon === "links" || seitlich("seitlich-links") || !!verbindung?.links,
+        rechts: linieVon === "rechts" || seitlich("seitlich-rechts") || !!verbindung?.rechts,
+      };
       if (block.h > 0) blockAnhaengen(kasten, block, blockLage, linieAufSeite);
     }
     if (!eingeklappt) {
@@ -249,11 +255,42 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     return k;
   };
 
-  const wurzeln = sichtbareWurzeln(plan, ansicht).map((id) => bauen(id)).filter((k): k is LKnoten => !!k);
-  const elemente: Element[] = [];
-  if (wurzeln.length === 0) return { breite: 2 * RAND + 80, hoehe: 2 * RAND + 20, elemente };
+  const aufbauen = () => {
+    kaesten = new Map();
+    besucht = new Set();
+    const w = sichtbareWurzeln(plan, ansicht).map((id) => bauen(id)).filter((k): k is LKnoten => !!k);
+    if (w.length === 0) return undefined;
+    return (w.length === 1 ? baumLayout(w[0]!) : waldLayout(w, ansicht.abstandStandard.waagerecht * 2)).block;
+  };
 
-  const { block } = wurzeln.length === 1 ? baumLayout(wurzeln[0]!) : waldLayout(wurzeln, ansicht.abstandStandard.waagerecht * 2);
+  let block = aufbauen();
+  const elemente: Element[] = [];
+  if (!block) return { breite: 2 * RAND + 80, hoehe: 2 * RAND + 20, elemente };
+
+  // Freie Verbindungen laufen auf Höhe der Zeichenmitte. Welche Seite sie
+  // nehmen, steht erst nach dem Layout fest; liegt dort ein Kontaktblock,
+  // wird einmal neu gesetzt, mit dem Block unter der Linie.
+  if (ansicht.typ === "kommunikationsplan" && Object.keys(plan.verbindungen).length) {
+    const lage = new Map(block.plaetze.map((p) => [p.id, p.x]));
+    const seiten = new Map<Id, { links: boolean; rechts: boolean }>();
+    const merke = (id: Id, seite: "links" | "rechts") => {
+      const s = seiten.get(id) ?? { links: false, rechts: false };
+      s[seite] = true;
+      seiten.set(id, s);
+    };
+    for (const v of Object.values(plan.verbindungen)) {
+      const a = kaesten.get(v.von)?.knoten, b = kaesten.get(v.nach)?.knoten;
+      const xa = lage.get(v.von), xb = lage.get(v.nach);
+      if (!a || !b || xa === undefined || xb === undefined) continue;
+      const aLinks = xa + a.ax <= xb + b.ax;
+      merke(v.von, aLinks ? "rechts" : "links");
+      merke(v.nach, aLinks ? "links" : "rechts");
+    }
+    if (seiten.size) {
+      verbindungsSeiten = seiten;
+      block = aufbauen()!;
+    }
+  }
 
   const titelH = optionen.titel ? 14 : 0;
   const ox = RAND;

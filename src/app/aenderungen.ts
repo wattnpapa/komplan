@@ -13,6 +13,7 @@ export const AENDERUNGEN: Aenderung[] = [
   {
     datum: "2026-11-21",
     punkte: [
+      "Kommunikationsplan: Steht der Kontaktblock rechts oder links, rückt er auch unter eine gestrichelte oder gepunktete Verbindung, statt von ihr durchgestrichen zu werden.",
       "Kommunikationsplan: Kontaktblöcke stehen in neuen Ansichten mittig unter dem Zeichen, der Plan wird schmaler und im PDF größer. Lose Stellen wie eine Regionalstelle rücken dicht an den Nachbarbaum heran.",
       "Linien in Führungsorganisation und Kommunikationsplan enden mit etwas Abstand vor dem Zeichen und oberhalb der Stärkepunkte, statt durch einen Punkt zu laufen.",
       "PDF: Taktische Zeichen nach einer gestrichelten Verbindung werden wieder mit durchgezogenem Rand gezeichnet.",

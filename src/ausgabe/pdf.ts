@@ -133,6 +133,12 @@ async function elementZeichnen(pdf: jsPDF, e: Element, a: Abbildung, nr: number)
           const st = t.getAttribute("style") ?? "";
           t.setAttribute("style", st.replace(/'Roboto Slab'/g, "Roboto Slab"));
         }
+        // svg2pdf setzt Strichmuster, Linienenden und -ecken nur, wenn das SVG
+        // sie nennt, und erbt sonst den jsPDF-Zustand: nach einer gestrichelten
+        // Verbindung würden alle folgenden Zeichen gestrichelt umrandet.
+        pdf.setLineDashPattern([], 0);
+        pdf.setLineCap("butt");
+        pdf.setLineJoin("miter");
         await pdf.svg(svg, { x: X(e.x), y: Y(e.y), width: e.groesse * a.s, height: e.groesse * a.s });
       } finally {
         huelle.remove();

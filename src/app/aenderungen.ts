@@ -11,6 +11,12 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-21",
+    punkte: [
+      "Rechtsklick auf eine Stelle in der Gliederung öffnet dasselbe Menü wie auf der Zeichenfläche (unterstellte Stelle anlegen, duplizieren, Skizze erzeugen, löschen), per Tastatur mit Umschalt+F10 oder der Kontextmenü-Taste; Esc oder ein Klick daneben schließt es.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

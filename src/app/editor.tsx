@@ -11,6 +11,7 @@ import { planOeffnen } from "./app";
 import { bestaetigen, kurzmeldung } from "./dialog";
 import { PlanEigenschaften, StelleEigenschaften } from "./eigenschaften";
 import { Gliederung, stelleTitel } from "./gliederung";
+import { Kontextmenue } from "./kontextmenue";
 import { PlanStore } from "./plan-store";
 import { Zeichenflaeche } from "./zeichenflaeche";
 import { PdfDialog } from "./pdf-dialog";
@@ -64,7 +65,8 @@ function EditorGeladen({ store }: { store: PlanStore }) {
   const [zeichenBereit, setZeichenBereit] = useState(0);
   const [speicherStand, setSpeicherStand] = useState<"gespeichert" | "ungespeichert" | "fehler">("gespeichert");
   const [exportOffen, setExportOffen] = useState(false);
-  const [kontext, setKontext] = useState<{ id: Id; x: number; y: number }>();
+  const [kontext, setKontext] = useState<{ id: Id; x: number; y: number; tastatur?: boolean }>();
+  const kontextSchliessen = useCallback(() => setKontext(undefined), []);
   const gespeicherteVersion = useRef(store.version);
 
   const [ansichtId, setAnsichtId] = useState<Id>();
@@ -475,9 +477,10 @@ function EditorGeladen({ store }: { store: PlanStore }) {
             }}
             onUmhaengen={(id, ziel) => aendern((p) => void umhaengen(p as Plan, id, ziel))}
             onTaste={gliederungTaste}
+            onKontext={(id, x, y, tastatur) => setKontext({ id, x, y, tastatur })}
           />
           <p className="hinweis tasten-hilfe">
-            Einfg: unterstellte Stelle · Enter: Stelle daneben · Entf: löschen · Strg+D: duplizieren · Alt+↑/↓: verschieben · Ziehen: umhängen
+            Einfg: unterstellte Stelle · Enter: Stelle daneben · Entf: löschen · Strg+D: duplizieren · Alt+↑/↓: verschieben · Ziehen: umhängen · Rechtsklick oder Umschalt+F10: Menü
           </p>
         </aside>
         <section className="spalte-mitte">
@@ -490,7 +493,7 @@ function EditorGeladen({ store }: { store: PlanStore }) {
             <Zeichenflaeche szene={szene} auswahl={auswahl} onAuswahl={waehle} onKontext={(id, x, y) => setKontext({ id, x, y })} zoom={zoom} setZoom={setZoom} />
           )}
           {kontext && (
-            <div className="kontextmenue" role="menu" style={{ left: kontext.x, top: kontext.y }} onMouseLeave={() => setKontext(undefined)}>
+            <Kontextmenue key={`${kontext.id}:${kontext.x}:${kontext.y}`} x={kontext.x} y={kontext.y} fokus={kontext.tastatur} label={`Stelle ${plan.stellen[kontext.id] ? stelleTitel(plan.stellen[kontext.id]!) : ""}`} onSchliessen={kontextSchliessen}>
               <button role="menuitem" type="button" onClick={() => (setKontext(undefined), neueStelleUnter({ unter: kontext.id }))}>Unterstellte Stelle anlegen</button>
               <button role="menuitem" type="button" onClick={() => (setKontext(undefined), aendern((p) => void stelleDuplizieren(p as Plan, kontext.id)))}>Duplizieren</button>
               <button role="menuitem" type="button" onClick={() => {
@@ -505,8 +508,8 @@ function EditorGeladen({ store }: { store: PlanStore }) {
                 });
                 setAnsichtId(neuId);
               }}>Kommunikationsskizze erzeugen</button>
-              <button role="menuitem" type="button" onClick={() => (setKontext(undefined), void loeschen(kontext.id))}>Löschen…</button>
-            </div>
+              <button role="menuitem" type="button" className="gefahr" onClick={() => (setKontext(undefined), void loeschen(kontext.id))}>Löschen…</button>
+            </Kontextmenue>
           )}
         </section>
         <aside className="spalte-rechts">

@@ -7,7 +7,7 @@ import { ZEICHENBEREICH_OBEN } from "./skizze";
 import type { Id, Plan } from "./typen";
 
 export interface Hinweis {
-  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist" | "skizze-im-kopf";
+  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist" | "skizze-im-kopf" | "funk-nur-bedingung";
   stufe: "fehler" | "warnung" | "info";
   text: string;
   stelle?: Id;
@@ -65,6 +65,13 @@ export function planPruefen(plan: Plan): Hinweis[] {
       }
       if (e.gueltigAb && e.gueltigAb > stand) {
         hinweise.push({ regel: "noch-nicht-gueltig", stufe: "info", text: `${name(s.id)}: „${bezeichnung}" gilt erst ab ${e.gueltigAb.replace("T", " ")}.`, stelle: s.id });
+      }
+    }
+
+    for (const f of s.funk) {
+      const wert = f.art === "digital" ? f.rufgruppe : f.kanal;
+      if (!wert.trim() && f.bedingung?.trim()) {
+        hinweise.push({ regel: "funk-nur-bedingung", stufe: "warnung", text: `${name(s.id)}: ${f.art === "digital" ? "Rufgruppe" : "Kanal"} leer, aber Bedingung „${f.bedingung.trim()}" eingetragen. Gehört das ins Feld ${f.art === "digital" ? "Rufgruppe" : "Kanal"}?`, stelle: s.id });
       }
     }
 

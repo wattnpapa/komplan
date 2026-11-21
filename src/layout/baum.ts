@@ -3,7 +3,7 @@
  * Elternknoten mittig über seinen Kindern, Kinder nebeneinander an einer
  * gemeinsamen Sammelschiene (orthogonal), wahlweise untereinander als Kamm,
  * dazu seitlich angehängte Knoten auf Höhe des Elternknotens (Gegenstab,
- * FZ FK neben ÜL, LtS neben E).
+ * FZ FK neben ÜL, LtS neben E); mehrere auf derselben Seite untereinander.
  *
  * Verfahren: Teilbäume als Blöcke von unten nach oben (Walker-artig ohne
  * Kontur-Verschachtelung). Das ist etwas weniger dicht als Reingold-Tilford,
@@ -71,6 +71,8 @@ export interface LBlock {
 
 /** Abstand zwischen Knoten und seitlich angehängtem Knoten. */
 const SEIT_ABSTAND = 8;
+/** Senkrechter Abstand zwischen mehreren seitlich angehängten Knoten einer Seite. */
+const SEIT_STAPEL = 6;
 /** Einzug der Kamm-Kinder rechts vom Anker. */
 const KAMM_EINZUG = 6;
 
@@ -111,7 +113,13 @@ export function baumLayout(wurzel: LKnoten): { block: LBlock; groessen: Map<stri
 /** Höhe eines Knotens samt seitlich angehängter Knoten (ohne deren Kinder). */
 function clusterHoehe(k: LKnoten): number {
   let h = k.h;
-  for (const s of k.seitlich) h = Math.max(h, k.mitteY - s.knoten.mitteY + s.knoten.h);
+  for (const seite of ["rechts", "links"] as const) {
+    const eintraege = k.seitlich.filter((s) => s.seite === seite).map((s) => s.knoten);
+    if (eintraege.length === 0) continue;
+    let unten = k.mitteY - eintraege[0]!.mitteY;
+    for (const s of eintraege) unten += s.h + SEIT_STAPEL;
+    h = Math.max(h, unten - SEIT_STAPEL);
+  }
   return h;
 }
 
@@ -130,37 +138,46 @@ function layout(k: LKnoten, groessen: Map<string, { b: number; h: number }>, zei
   let plaetze: LPlatz[] = [{ id: k.id, x: 0, y: 0 }];
   let linien: LLinie[] = [];
 
-  // 1. Seitlich angehängte Knoten auf Höhe der Zeichenmitte.
-  let links = 0; // linke Kante des bisherigen Clusters
-  let rechts = k.b;
-  for (const s of k.seitlich) {
-    const sb = layout(s.knoten, groessen, undefined, 0);
-    const dy = k.mitteY - (sb.wy + s.knoten.mitteY);
-    if (s.seite === "rechts") {
-      // Linke Kante des Seitenblocks (normiert auf 0) an `rechts + Abstand`
-      const korr = rechts + SEIT_ABSTAND;
-      const fertig = verschieben(sb, korr, dy);
-      plaetze = plaetze.concat(fertig.plaetze);
-      linien = linien.concat(fertig.linien);
-      linien.push({
-        von: k.id,
-        nach: s.knoten.id,
-        punkte: [[k.zRechts, k.mitteY], [fertig.wx + s.knoten.zLinks, k.mitteY]],
-        linie: s.knoten.linie,
-      });
-      rechts = korr + sb.b;
+  // 1. Seitlich angehängte Knoten. Der erste je Seite steht auf Höhe der
+  //    Zeichenmitte, weitere darunter in einer Spalte (Zeichen mittig
+  //    übereinander), angebunden über eine senkrechte Schiene. Die
+  //    Sammelschiene zu den Kindern liegt unter so einer Spalte, damit sie
+  //    nicht durch deren Beschriftung läuft.
+  let seitUnten = -Infinity;
+  for (const seite of ["rechts", "links"] as const) {
+    const eintraege = k.seitlich.filter((s) => s.seite === seite).map((s) => s.knoten);
+    if (eintraege.length === 0) continue;
+    const bloecke = eintraege.map((s) => layout(s, groessen, undefined, 0));
+    const spalteX = seite === "rechts"
+      ? k.b + SEIT_ABSTAND + Math.max(...bloecke.map((b) => b.ax))
+      : -SEIT_ABSTAND - Math.max(...bloecke.map((b) => b.b - b.ax));
+    let y = k.mitteY - (bloecke[0]!.wy + eintraege[0]!.mitteY);
+    const fertig = bloecke.map((sb) => {
+      const v = verschieben(sb, spalteX - sb.ax, y);
+      y += sb.h + SEIT_STAPEL;
+      return v;
+    });
+    fertig.forEach((f) => {
+      if (eintraege.length > 1) seitUnten = Math.max(seitUnten, f.wy + f.h);
+      plaetze = plaetze.concat(f.plaetze);
+      linien = linien.concat(f.linien);
+    });
+    const kante = seite === "rechts" ? k.zRechts : k.zLinks;
+    const zeichenKante = (i: number): number => fertig[i]!.wx + (seite === "rechts" ? eintraege[i]!.zLinks : eintraege[i]!.zRechts);
+    const waagerecht = (x0: number, x1: number, yy: number): Array<[number, number]> =>
+      seite === "rechts" ? [[x0, yy], [x1, yy]] : [[x1, yy], [x0, yy]];
+    if (eintraege.length === 1) {
+      linien.push({ von: k.id, nach: eintraege[0]!.id, punkte: waagerecht(kante, zeichenKante(0), k.mitteY), linie: eintraege[0]!.linie });
     } else {
-      const korr = links - SEIT_ABSTAND - sb.b;
-      const fertig = verschieben(sb, korr, dy);
-      plaetze = plaetze.concat(fertig.plaetze);
-      linien = linien.concat(fertig.linien);
-      linien.push({
-        von: k.id,
-        nach: s.knoten.id,
-        punkte: [[fertig.wx + s.knoten.zRechts, k.mitteY], [k.zLinks, k.mitteY]],
-        linie: s.knoten.linie,
+      const schieneX = seite === "rechts" ? k.b + SEIT_ABSTAND / 2 : -SEIT_ABSTAND / 2;
+      const alleGleich = eintraege.every((s) => s.linie === eintraege[0]!.linie);
+      const stamm: Linienart = alleGleich ? eintraege[0]!.linie : "durchgezogen";
+      const mitten = fertig.map((f, i) => f.wy + eintraege[i]!.mitteY);
+      linien.push({ von: k.id, nach: eintraege[0]!.id, punkte: waagerecht(kante, schieneX, k.mitteY), linie: stamm });
+      linien.push({ von: k.id, nach: eintraege[0]!.id, punkte: [[schieneX, k.mitteY], [schieneX, mitten.at(-1)!]], linie: stamm });
+      eintraege.forEach((s, i) => {
+        linien.push({ von: k.id, nach: s.id, punkte: waagerecht(schieneX, zeichenKante(i), mitten[i]!), linie: s.linie });
       });
-      links = korr;
     }
   }
 
@@ -201,7 +218,8 @@ function layout(k: LKnoten, groessen: Map<string, { b: number; h: number }>, zei
       const dx = k.ax - mitte;
       const reihe = platziert.map((p, i) => verschieben(p, dx, zeileY + (k.kinder[i]!.versatz ?? 0)));
       const minOben = Math.min(...reihe.map((r, i) => r.wy - (k.kinder[i]!.versatz ?? 0) + k.kinder[i]!.oben));
-      const schieneY = k.unten + (minOben - k.unten) * 0.5;
+      const schieneOben = Math.max(k.unten, seitUnten);
+      const schieneY = schieneOben + (minOben - schieneOben) * 0.5;
       for (const r of reihe) {
         plaetze = plaetze.concat(r.plaetze);
         linien = linien.concat(r.linien);

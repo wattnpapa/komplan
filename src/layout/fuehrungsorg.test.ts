@@ -60,6 +60,20 @@ describe("Führungsorganisation", () => {
     expect(gestrichelt).toHaveLength(1);
   });
 
+  it("stellt mehrere seitlich angehängte Stellen einer Seite untereinander", () => {
+    const plan = neuerPlan();
+    const fuest = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "stab" } }));
+    const rechts = { lage: "seitlich-rechts", linie: "durchgezogen" } as const;
+    const a = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "log-thw" }, anbindung: rechts }), { unter: fuest });
+    const b = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "log-thw" }, anbindung: rechts }), { unter: fuest });
+    const kind = stelleAnlegen(plan, eal(), { unter: fuest });
+    const r = zeichenRahmen(fuehrungsorgSzene(plan, neueFuehrungsorgAnsicht()));
+    expect(r.get(a)!.y).toBeCloseTo(r.get(fuest)!.y, 5);
+    expect(r.get(b)!.x).toBeCloseTo(r.get(a)!.x, 5);
+    expect(r.get(b)!.y).toBeGreaterThan(r.get(a)!.y + r.get(a)!.g);
+    expect(r.get(kind)!.y).toBeGreaterThan(r.get(b)!.y + r.get(b)!.g);
+  });
+
   it("stapelt Kinder untereinander, wenn vertikal gewählt", () => {
     const plan = neuerPlan();
     const log = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "log-thw" }, layout: { kinder: "vertikal" } }));

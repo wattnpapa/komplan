@@ -2,6 +2,10 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-21
+
+- **Mehrere seitlich angehängte Stellen auf einer Seite stehen untereinander**, nicht nebeneinander (Bereitstellungsraum und Logistikstützpunkt rechts neben der FüSt). Die erste steht auf Höhe der Führungsstelle, weitere darunter mit 6 mm Abstand, Zeichen mittig übereinander. Angebunden über eine senkrechte Schiene neben der Führungsstelle; sie übernimmt die Linienart, wenn alle Stellen dieselbe haben, sonst durchgezogen. Die Sammelschiene zu den Unterstellten rutscht unter die Spalte. Eine einzelne seitliche Stelle bleibt wie bisher.
+
 ## 2026-11-13 (M4)
 
 - **Fb Fü 76 aus dem Baum**: eigene Stelle = Fokus der Ansicht (Vorgabe: oberste Stelle). Obere Reihe: übergeordnete Stelle, dann die in der Ansicht gewählten Nachbarn, dann Geschwister (vier Plätze). Die vier Kanalfelder zeigen die ersten vier Funkangaben der eigenen Stelle mit ihrem Richtungspfeil. Unterstellte: vier im Raster, fünf in der Reihe „Takt. Einheit", weitere auf Folgeblättern. Kanal oben im Kasten einer Unterstellten: deren Funk mit Richtung ↑, sonst der Führungskanal (↓) der eigenen Stelle; unten: deren Funk mit Richtung ↓.

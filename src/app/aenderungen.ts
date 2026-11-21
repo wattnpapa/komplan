@@ -11,6 +11,12 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-21",
+    punkte: [
+      "Mehrere seitlich angehängte Stellen auf derselben Seite stehen jetzt untereinander neben der übergeordneten Stelle statt nebeneinander in einer Reihe.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

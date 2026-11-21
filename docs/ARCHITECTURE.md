@@ -70,7 +70,7 @@ Eigene Umsetzung (~400 Zeilen, mit Tests) des „tidy tree" nach Reingold-Tilfor
 
 - Kinder `horizontal` (Standard): Sammelschiene unter dem Elternknoten, senkrechte Stiche zu den Kindern.
 - Kinder `vertikal`: Kinder untereinander, Linie seitlich als Kamm (wie Einheitenlisten unter EAL in RÜBEX24).
-- `seitlich links/rechts`: Knoten neben dem Elternknoten auf gleicher Höhe, waagerechte Linie (Gegenstab, FZ FK neben ÜL, LtS gestrichelt neben E). Zählt nicht in die Breite des Teilbaums darunter.
+- `seitlich links/rechts`: Knoten neben dem Elternknoten auf gleicher Höhe, waagerechte Linie (Gegenstab, FZ FK neben ÜL, LtS gestrichelt neben E). Mehrere auf derselben Seite stehen untereinander an einer senkrechten Schiene. Zählt nicht in die Breite des Teilbaums darunter.
 - Abstand je Knoten überschreibbar, eingeklappte Teilbäume zeigen „+n".
 - Kontaktblöcke (Komplan-Organigramm) gehen als Teil der Knotengröße ins Layout ein (rechts oder unter dem Zeichen).
 

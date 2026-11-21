@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { neueFuehrungsorgAnsicht, neuerPlan, neueStelle, stelleAnlegen } from "../modell/plan";
+import { neueFuehrungsorgAnsicht, neueKomplanAnsicht, neuerPlan, neueStelle, stelleAnlegen } from "../modell/plan";
 import type { Plan, Stelle } from "../modell/typen";
 import type { Szene } from "../szene/typen";
 import { szeneZuSvg } from "../ausgabe/svg";
 import { fuehrungsorgSzene } from "./fuehrungsorg";
+import { textBreite } from "../szene/text";
 
 const eal = (t: Partial<Stelle> = {}) => neueStelle({ zeichen: { quelle: "katalog", schluessel: "Führungsstellen/EAL" }, ...t });
 
@@ -35,6 +36,24 @@ describe("Führungsorganisation", () => {
     expect(ys[0]!).toBeGreaterThan(r.get(tel)!.y + 10);
   });
 
+  it("lässt Linien vor dem Zeichen und über den Stärkepunkten enden", () => {
+    const { plan, tel, eas } = einsatzstruktur();
+    const szene = fuehrungsorgSzene(plan, neueFuehrungsorgAnsicht());
+    const r = zeichenRahmen(szene);
+    const linien = szene.elemente.filter((e) => e.art === "linie" && e.herkunft?.rolle === "unterstellung");
+    for (const id of eas) {
+      const z = r.get(id)!;
+      const ende = Math.max(...linien.filter((l) => l.art === "linie" && l.herkunft?.stelle === id).flatMap((l) => (l.art === "linie" ? l.punkte.map(([, y]) => y) : [])));
+      // Stärkepunkte beginnen bei 34/256 der Zeichengröße, die Form bei 64/256
+      expect(ende).toBeLessThan(z.y + z.g * (34 / 256));
+      expect(ende).toBeGreaterThan(z.y);
+    }
+    // Stamm beginnt unterhalb der Zeichenform des Elternknotens, nicht an der Kante
+    const tz = r.get(tel)!;
+    const anfang = Math.min(...linien.flatMap((l) => (l.art === "linie" ? l.punkte.filter(([x]) => Math.abs(x - (tz.x + tz.g / 2)) < 0.01).map(([, y]) => y) : [])));
+    expect(anfang).toBeGreaterThan(tz.y + tz.g * (192 / 256));
+  });
+
   it("überlappt keine Zeichen", () => {
     const { plan } = einsatzstruktur();
     const ansicht = neueFuehrungsorgAnsicht();
@@ -58,6 +77,20 @@ describe("Führungsorganisation", () => {
     expect(r.get(elo)!.y).toBeGreaterThan(r.get(stab)!.y);
     const gestrichelt = szene.elemente.filter((e) => e.art === "linie" && e.linie === "gestrichelt");
     expect(gestrichelt).toHaveLength(1);
+  });
+
+  it("stellt mehrere seitlich angehängte Stellen einer Seite untereinander", () => {
+    const plan = neuerPlan();
+    const fuest = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "stab" } }));
+    const rechts = { lage: "seitlich-rechts", linie: "durchgezogen" } as const;
+    const a = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "log-thw" }, anbindung: rechts }), { unter: fuest });
+    const b = stelleAnlegen(plan, neueStelle({ zeichen: { quelle: "eigen", vorlage: "log-thw" }, anbindung: rechts }), { unter: fuest });
+    const kind = stelleAnlegen(plan, eal(), { unter: fuest });
+    const r = zeichenRahmen(fuehrungsorgSzene(plan, neueFuehrungsorgAnsicht()));
+    expect(r.get(a)!.y).toBeCloseTo(r.get(fuest)!.y, 5);
+    expect(r.get(b)!.x).toBeCloseTo(r.get(a)!.x, 5);
+    expect(r.get(b)!.y).toBeGreaterThan(r.get(a)!.y + r.get(a)!.g);
+    expect(r.get(kind)!.y).toBeGreaterThan(r.get(b)!.y + r.get(b)!.g);
   });
 
   it("stapelt Kinder untereinander, wenn vertikal gewählt", () => {
@@ -86,5 +119,57 @@ describe("Führungsorganisation", () => {
     expect(a).toBe(b);
     expect(a).toMatch(/^<svg [^>]*viewBox="0 0 [\d.]+ [\d.]+"/);
     expect(a).toContain(">Süd</text>");
+  });
+
+  it("Kontaktblock rückt unter die Linie zu einer seitlich angehängten Stelle", () => {
+    const plan = neuerPlan({ zeit: "2026-11-13T10:00" });
+    const funk = (rg: string) => [{ id: rg, art: "digital" as const, betrieb: "TMO" as const, rufgruppe: rg, richtung: "unten" as const }];
+    const a = stelleAnlegen(plan, eal({ beschriftung: "Musterstadt", funkrufname: "Heros Musterstadt 1", funk: funk("T_MUSTER-1") }));
+    stelleAnlegen(plan, eal({ beschriftung: "Nord", funkrufname: "Heros Musterstadt 10", funk: funk("T_MUSTER-2"), anbindung: { lage: "seitlich-rechts", linie: "gestrichelt" } }), { unter: a });
+    for (const lage of ["rechts", "links"] as const) {
+      const ansicht = neueKomplanAnsicht({ kontaktLage: lage });
+      const szene = fuehrungsorgSzene(plan, ansicht);
+      const waagerecht = szene.elemente.filter((e): e is Extract<typeof e, { art: "linie" }> => e.art === "linie" && e.herkunft?.rolle === "unterstellung" && e.punkte.length === 2 && Math.abs(e.punkte[0]![1] - e.punkte[1]![1]) < 1e-6);
+      expect(waagerecht.length).toBeGreaterThan(0);
+      for (const l of waagerecht) {
+        const [x0, x1] = [Math.min(l.punkte[0]![0], l.punkte[1]![0]), Math.max(l.punkte[0]![0], l.punkte[1]![0])];
+        const ly = l.punkte[0]![1];
+        for (const t of szene.elemente) {
+          if (t.art !== "text" || t.herkunft?.rolle !== "kontakt") continue;
+          const breite = textBreite(t.text, t.groesse, !!t.fett);
+          const tx0 = t.anker === "end" ? t.x - breite : t.anker === "middle" ? t.x - breite / 2 : t.x;
+          if (tx0 + breite < x0 || tx0 > x1) continue;
+          // Text liegt ganz unter oder ganz über der Linie
+          const oben = t.y - t.groesse * 0.3528 * 0.75;
+          expect(oben > ly || t.y + 0.5 < ly, `${lage}: „${t.text}" kreuzt die Linie bei y=${ly.toFixed(1)}`).toBe(true);
+        }
+      }
+    }
+  });
+  it("Kontaktblock rückt unter eine freie Verbindung (Regionalstelle gestrichelt zur Führungsstelle)", () => {
+    const plan = neuerPlan({ zeit: "2026-11-13T10:00" });
+    const funk = (rg: string) => [{ id: rg, art: "digital" as const, betrieb: "TMO" as const, rufgruppe: rg, richtung: "unten" as const }];
+    const luk = stelleAnlegen(plan, eal({ beschriftung: "Musterdorf", funkrufname: "Heros Musterdorf 85", funk: funk("T_MUSTER-1") }));
+    const fst = stelleAnlegen(plan, eal({ beschriftung: "Nordwest", funkrufname: "Heros Nordwest 10", funk: funk("T_MUSTER-2") }));
+    for (let i = 0; i < 3; i++) stelleAnlegen(plan, eal({ beschriftung: `TZ ${i}`, funk: funk(`T_MUSTER-${i + 3}`) }), { unter: fst });
+    plan.verbindungen = { v: { id: "v", von: luk, nach: fst, art: "zusammenarbeit", linie: "gestrichelt" } };
+    for (const lage of ["rechts", "links"] as const) {
+      const szene = fuehrungsorgSzene(plan, neueKomplanAnsicht({ kontaktLage: lage }));
+      const v = szene.elemente.find((e): e is Extract<typeof e, { art: "linie" }> => e.art === "linie" && e.herkunft?.rolle === "verbindung")!;
+      expect(v).toBeDefined();
+      for (let i = 1; i < v.punkte.length; i++) {
+        const [[ax, ay], [bx, by]] = [v.punkte[i - 1]!, v.punkte[i]!];
+        if (Math.abs(ay - by) > 1e-6) continue;
+        const [x0, x1] = [Math.min(ax, bx), Math.max(ax, bx)];
+        for (const t of szene.elemente) {
+          if (t.art !== "text" || t.herkunft?.rolle !== "kontakt") continue;
+          const breite = textBreite(t.text, t.groesse, !!t.fett);
+          const tx0 = t.anker === "end" ? t.x - breite : t.anker === "middle" ? t.x - breite / 2 : t.x;
+          if (tx0 + breite < x0 || tx0 > x1) continue;
+          const oben = t.y - t.groesse * 0.3528 * 0.75;
+          expect(oben > ay || t.y + 0.5 < ay, `${lage}: „${t.text}" kreuzt die Verbindung bei y=${ay.toFixed(1)}`).toBe(true);
+        }
+      }
+    }
   });
 });

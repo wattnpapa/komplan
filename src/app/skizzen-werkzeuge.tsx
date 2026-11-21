@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Draft } from "immer";
 import { elementRahmen } from "../layout/skizze";
-import { elementeKopieren, elementeLoeschen, FARBE_DRAHT, FARBE_FUNK, FARBE_SCHWARZ } from "../modell/skizze";
+import { dyBegrenzen, elementeKopieren, elementeLoeschen, FARBE_DRAHT, FARBE_FUNK, FARBE_SCHWARZ } from "../modell/skizze";
 import { neueId } from "../modell/id";
 import type { Id, Plan, SkAnschluss, SkGeraet, SkizzenAnsicht, SkizzenElement } from "../modell/typen";
 import type { Platzierer } from "./skizzen-flaeche";
@@ -130,9 +130,10 @@ export function SkizzenWerkzeuge({
     aendern((p) => elementeLoeschen(skizze(p) as SkizzenAnsicht, auswahl));
     setAuswahl([]);
   };
-  const stupsen = (dx: number, dy: number) =>
+  const stupsen = (dx: number, dyWunsch: number) =>
     aendern((p) => {
       const a = skizze(p);
+      const dy = dyBegrenzen(auswahl.map((id) => a.elemente[id]).filter((e) => !!e), dyWunsch);
       for (const id of auswahl) {
         const e = a.elemente[id];
         if (!e) continue;
@@ -182,7 +183,7 @@ export function SkizzenWerkzeuge({
             ))}
           </select>
         </label>
-        <button type="button" aria-pressed={aktiv === "stelle"} disabled={!stelleWahl} onClick={() => werkzeug("stelle", () => ({ art: "stelle", stelle: stelleWahl, x: 0, y: 0, b: 62, h: 28 }))} title="Kasten mit Zeichen, Funkrufname, Tel., Fax und Funk">Kasten</button>
+        <button type="button" aria-pressed={aktiv === "stelle"} disabled={!stelleWahl} onClick={() => werkzeug("stelle", () => ({ art: "stelle", stelle: stelleWahl, x: 0, y: 0, b: 62, h: 16 }))} title="Kasten mit Zeichen, Funkrufname, Tel., Fax und Funk">Kasten</button>
         <button type="button" aria-pressed={aktiv === "zeichen"} disabled={!stelleWahl} onClick={() => werkzeug("zeichen", () => ({ art: "zeichen", stelle: stelleWahl, x: 0, y: 0, b: 18, h: 18 }))} title="Taktisches Zeichen mit Rufname darunter">Zeichen</button>
       </span>
       <span className="wz-gruppe">

@@ -64,6 +64,27 @@ describe("Kommunikationsplan-Ansicht", () => {
     expect(t).toContain("131000NOV26");
   });
 
+  it("setzt den Block mittig unter das Zeichen und rückt eine lose Stelle neben die Wurzel des Nachbarbaums", () => {
+    const plan = neuerPlan({ zeit: "2026-11-13T10:00" });
+    const rf = { id: "r", art: "digital" as const, betrieb: "TMO" as const, rufgruppe: "TBZ_9901_UNI_MUSTERSTADT", richtung: "unten" as const };
+    const luk = stelleAnlegen(plan, neueStelle({ beschriftung: "Musterdorf", funk: [rf] }));
+    const fst = stelleAnlegen(plan, neueStelle({ beschriftung: "Nordwest", funk: [rf] }));
+    for (let i = 0; i < 6; i++) stelleAnlegen(plan, neueStelle({ beschriftung: `TZ ${i}`, funk: [rf] }), { unter: fst });
+    const a = neueKomplanAnsicht({ kopfleiste: false });
+    expect(a.kontaktLage).toBe("unten");
+    const szene = fuehrungsorgSzene(plan, a);
+    const zeichen = new Map(szene.elemente.flatMap((e) => (e.art === "zeichen" && e.herkunft?.stelle ? [[e.herkunft.stelle, e] as const] : [])));
+    const mitte = (id: string) => zeichen.get(id)!.x + zeichen.get(id)!.groesse / 2;
+    // Block mittig: erster Kontakttext beginnt links vom Zeichen
+    const block = szene.elemente.filter((e) => e.art === "text" && e.herkunft?.stelle === fst && e.herkunft.rolle === "kontakt");
+    expect(block.length).toBeGreaterThan(0);
+    expect(Math.min(...block.map((e) => (e.art === "text" ? e.x : 0)))).toBeLessThan(zeichen.get(fst)!.x);
+    // Lose Stelle steht dicht neben „Nordwest", nicht links neben allen Unterstellten
+    const kinder = plan.stellen[fst]!.kinder;
+    expect(mitte(luk)).toBeGreaterThan(mitte(kinder[0]!));
+    expect(mitte(fst) - mitte(luk)).toBeLessThan(90);
+  });
+
   it("Kopfleiste hat die Felder der THW-Vordrucke", () => {
     const k = kopfleiste({ breite: 277, formular: "Fb Fü 76", titel: "Kommunikationsplan", kopf: { fuehrungsstelle: "EAL 3", fuer: "Flut", fdr: "X" }, dtg: "010730JUN16" });
     const t = texte(k.elemente);

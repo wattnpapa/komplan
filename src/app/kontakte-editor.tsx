@@ -1,4 +1,5 @@
 import type { Draft } from "immer";
+import { useState } from "react";
 import { neueId } from "../modell/id";
 import type { Funkangabe, Kontakt, KontaktArt, Nebenstelle, Plan, Richtung } from "../modell/typen";
 
@@ -77,58 +78,95 @@ export function KontakteEditor({ liste, pfad, aendern, schluessel }: { liste: Ko
 
 export function FunkEditor({ liste, pfad, aendern, schluessel }: { liste: Funkangabe[]; pfad: (p: Draft<Plan>) => Draft<Funkangabe>[]; aendern: Aendern; schluessel: string }) {
   const setze = (i: number, f: (k: Draft<Funkangabe>) => void, feld: string) => aendern((p) => f(pfad(p)[i]!), `${schluessel}.${liste[i]!.id}.${feld}`);
+  // Neu angelegter Eintrag: Fokus gleich ins Feld für Rufgruppe bzw. Kanal
+  const [neu, setNeu] = useState<string>();
+  const anlegen = (f: Funkangabe) => {
+    aendern((p) => void pfad(p).push(f));
+    setNeu(f.id);
+  };
   return (
     <div className="eintrag-liste">
-      {liste.map((f, i) => (
+      {liste.map((f, i) => {
+        const wert = f.art === "digital" ? f.rufgruppe : f.kanal;
+        const nurBedingung = !wert.trim() && !!f.bedingung?.trim();
+        const wertId = `${schluessel}-${f.id}-wert`;
+        const hinweisId = `${schluessel}-${f.id}-hinweis`;
+        return (
         <fieldset className="eintrag" key={f.id}>
           <legend className="nur-sr">Funk {i + 1}</legend>
           {f.art === "digital" ? (
-            <div className="zeile">
-              <label className="feld schmal">
-                Betrieb
-                <select value={f.betrieb} onChange={(e) => setze(i, (x) => void (x.art === "digital" && (x.betrieb = e.target.value as "TMO" | "DMO")), "betrieb")}>
-                  <option value="TMO">TMO</option>
-                  <option value="DMO">DMO</option>
-                </select>
-              </label>
-              <label className="feld">
+            <>
+              <label className="feld funk-wert" htmlFor={wertId}>
                 Rufgruppe
-                <input className="daten" value={f.rufgruppe} placeholder="z. B. TBZ_9901_UNI" onChange={(e) => setze(i, (x) => void (x.art === "digital" && (x.rufgruppe = e.target.value)), "rg")} />
+                <input id={wertId} className="daten" value={f.rufgruppe} placeholder="Name der Rufgruppe, z. B. TBZ_9901_UNI" autoFocus={f.id === neu} aria-invalid={nurBedingung || undefined} aria-describedby={nurBedingung ? hinweisId : undefined} onChange={(e) => setze(i, (x) => void (x.art === "digital" && (x.rufgruppe = e.target.value)), "rg")} />
               </label>
-            </div>
+              <div className="zeile">
+                <label className="feld funk-betrieb">
+                  Betrieb
+                  <select value={f.betrieb} onChange={(e) => setze(i, (x) => void (x.art === "digital" && (x.betrieb = e.target.value as "TMO" | "DMO")), "betrieb")}>
+                    <option value="TMO">TMO</option>
+                    <option value="DMO">DMO</option>
+                  </select>
+                </label>
+                <label className="feld">
+                  Richtung
+                  <select value={f.richtung} onChange={(e) => setze(i, (x) => void (x.richtung = e.target.value as Richtung), "richtung")}>
+                    {RICHTUNGEN.map(([w, t]) => (
+                      <option key={w} value={w}>{t}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </>
           ) : (
-            <div className="zeile">
-              <label className="feld schmal">
-                Band
-                <select value={f.band} onChange={(e) => setze(i, (x) => void (x.art === "analog" && (x.band = e.target.value as "4m" | "2m")), "band")}>
-                  <option value="4m">4 m</option>
-                  <option value="2m">2 m</option>
+            <>
+              <div className="zeile">
+                <label className="feld schmal">
+                  Band
+                  <select value={f.band} onChange={(e) => setze(i, (x) => void (x.art === "analog" && (x.band = e.target.value as "4m" | "2m")), "band")}>
+                    <option value="4m">4 m</option>
+                    <option value="2m">2 m</option>
+                  </select>
+                </label>
+                <label className="feld schmal funk-wert" htmlFor={wertId}>
+                  Kanal
+                  <input id={wertId} className="daten" value={f.kanal} placeholder="z. B. 501" autoFocus={f.id === neu} aria-invalid={nurBedingung || undefined} aria-describedby={nurBedingung ? hinweisId : undefined} onChange={(e) => setze(i, (x) => void (x.art === "analog" && (x.kanal = e.target.value)), "kanal")} />
+                </label>
+                <label className="feld funk-betrieb">
+                  Betriebsart
+                  <input list="betriebsarten" value={f.betriebsart} onChange={(e) => setze(i, (x) => void (x.art === "analog" && (x.betriebsart = e.target.value)), "ba")} />
+                </label>
+              </div>
+              <label className="feld">
+                Richtung
+                <select value={f.richtung} onChange={(e) => setze(i, (x) => void (x.richtung = e.target.value as Richtung), "richtung")}>
+                  {RICHTUNGEN.map(([w, t]) => (
+                    <option key={w} value={w}>{t}</option>
+                  ))}
                 </select>
               </label>
-              <label className="feld schmal">
-                Kanal
-                <input className="daten" value={f.kanal} onChange={(e) => setze(i, (x) => void (x.art === "analog" && (x.kanal = e.target.value)), "kanal")} />
-              </label>
-              <label className="feld schmal">
-                Betriebsart
-                <input list="betriebsarten" value={f.betriebsart} onChange={(e) => setze(i, (x) => void (x.art === "analog" && (x.betriebsart = e.target.value)), "ba")} />
-              </label>
+            </>
+          )}
+          <label className="feld">
+            Bedingung (optional)
+            <input value={f.bedingung ?? ""} placeholder="z. B. nur bei Ausfall TMO" onChange={(e) => setze(i, (x) => void (x.bedingung = e.target.value || undefined), "bed")} />
+          </label>
+          {nurBedingung && (
+            <div className="warnung funk-hinweis" id={hinweisId} role="status">
+              <p>
+                {f.art === "digital" ? "Rufgruppe" : "Kanal"} ist leer. „Bedingung“ steht nicht in der Funk-Fahne der Skizze, nur als Zusatz im Plan.
+              </p>
+              <button type="button" onClick={() => {
+                setze(i, (x) => {
+                  const t = x.bedingung?.trim() ?? "";
+                  if (x.art === "digital") x.rufgruppe = t;
+                  else x.kanal = t;
+                  delete x.bedingung;
+                }, "uebernehmen");
+                document.getElementById(wertId)?.focus();
+              }}>„{f.bedingung!.trim()}“ als {f.art === "digital" ? "Rufgruppe" : "Kanal"} übernehmen</button>
             </div>
           )}
-          <div className="zeile">
-            <label className="feld">
-              Richtung
-              <select value={f.richtung} onChange={(e) => setze(i, (x) => void (x.richtung = e.target.value as Richtung), "richtung")}>
-                {RICHTUNGEN.map(([w, t]) => (
-                  <option key={w} value={w}>{t}</option>
-                ))}
-              </select>
-            </label>
-            <label className="feld">
-              Bedingung
-              <input value={f.bedingung ?? ""} onChange={(e) => setze(i, (x) => void (x.bedingung = e.target.value || undefined), "bed")} />
-            </label>
-          </div>
           <details className="eintrag-mehr" open={!!(f.bezeichnung || f.gueltigAb || f.gueltigBis)}>
             <summary>Bezeichnung, Gültigkeit</summary>
             <label className="feld">
@@ -150,10 +188,11 @@ export function FunkEditor({ liste, pfad, aendern, schluessel }: { liste: Funkan
             <button type="button" onClick={() => aendern((p) => void pfad(p).splice(i, 1))}>Entfernen</button>
           </div>
         </fieldset>
-      ))}
+        );
+      })}
       <div className="aktionen">
-        <button type="button" onClick={() => aendern((p) => void pfad(p).push({ id: neueId(), art: "digital", betrieb: "TMO", rufgruppe: "", richtung: "unten" }))}>+ Rufgruppe (Digitalfunk)</button>
-        <button type="button" onClick={() => aendern((p) => void pfad(p).push({ id: neueId(), art: "analog", band: "4m", kanal: "", betriebsart: "W/U", richtung: "unten" }))}>+ Kanal (Analogfunk)</button>
+        <button type="button" onClick={() => anlegen({ id: neueId(), art: "digital", betrieb: "TMO", rufgruppe: "", richtung: "unten" })}>+ Rufgruppe (Digitalfunk)</button>
+        <button type="button" onClick={() => anlegen({ id: neueId(), art: "analog", band: "4m", kanal: "", betriebsart: "W/U", richtung: "unten" })}>+ Kanal (Analogfunk)</button>
       </div>
       <datalist id="betriebsarten">
         <option value="W/U" />

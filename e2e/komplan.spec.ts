@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture.js";
 
 test("Kontakte eingeben, Kommunikationsplan, PDF und Stände", async ({ page }) => {
   await page.clock.setFixedTime(new Date("2026-11-13T10:00:00"));

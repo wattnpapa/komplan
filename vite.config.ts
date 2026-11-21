@@ -26,7 +26,8 @@ function kernPfad(baustein: string, modul: string): string {
 
 /**
  * Content-Security-Policy als <meta>, nur im Build (wie erfassungsbogen).
- * komplan lädt nichts von fremden Hosts: keine Reichweitenmessung, keine
+ * komplan lädt nichts von fremden Hosts außer der Zählung bei GoatCounter
+ * (Skript von gc.zgo.at, Zählimpuls an komplan.goatcounter.com); keine
  * CDN-Schriften. Inline-Skripte werden gehasht freigegeben.
  */
 function contentSecurityPolicy(): Plugin {
@@ -45,11 +46,11 @@ function contentSecurityPolicy(): Plugin {
         "base-uri 'none'",
         "object-src 'none'",
         "form-action 'none'",
-        `script-src 'self' ${hashes.join(" ")}`.trim(),
+        `script-src 'self' https://gc.zgo.at ${hashes.join(" ")}`.trim(),
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob:",
+        "img-src 'self' data: blob: https://komplan.goatcounter.com",
         "font-src 'self' data:",
-        "connect-src 'self'",
+        "connect-src 'self' https://komplan.goatcounter.com",
         "worker-src 'self'",
       ].join("; ");
       html.source = quelle.replace("<head>", `<head>\n<meta http-equiv="Content-Security-Policy" content="${policy}" />`);
@@ -79,6 +80,7 @@ export default defineConfig({
       manifest: false,
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,webmanifest,woff,woff2,ttf,json,txt}"],
+        // count.js liegt auf gc.zgo.at und wird nie gecacht; offline fällt die Zählung still aus.
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
         navigateFallbackDenylist: [/impressum\.html$/, /datenschutz\.html$/],
       },

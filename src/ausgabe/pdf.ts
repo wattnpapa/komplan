@@ -4,20 +4,24 @@
  * Vektor über svg2pdf.js mit eingebetteter Roboto Slab. Läuft im Browser
  * (svg2pdf braucht ein DOM); wird erst beim Export nachgeladen.
  *
- * Große Pläne: „einpassen" verkleinert auf eine Seite, „teilen" verteilt in
- * Originalgröße auf mehrere Seiten mit 10 mm Überlappung und Seitenmarken.
+ * Große Pläne: „einpassen" verkleinert auf eine Seite, „teilen" bringt die
+ * taktischen Zeichen auf die gewählte Breite (Standard 50 mm) und verteilt
+ * den Plan auf mehrere Seiten mit 10 mm Überlappung und Seitenmarken.
  */
 
 import { jsPDF } from "jspdf";
 import "svg2pdf.js";
 import type { Szene, Element } from "../szene/typen";
 import { strichmuster } from "../szene/typen";
+import { zeichenMassstab } from "../szene/massstab";
 import { svgIdsPraefixen, zeichenSvg } from "../zeichen/katalog";
 
 export interface PdfOptionen {
   format: "A4" | "A3";
   ausrichtung: "quer" | "hoch";
   grosseFlaeche: "einpassen" | "teilen";
+  /** Bei "teilen": Breite der taktischen Zeichen in mm (Standard 50). */
+  zeichenBreite?: number;
   /** Seitenfuß links. */
   fuss: { titel: string; dtg: string; version: number };
   /** Verschlusssachenvermerk oben und/oder unten mittig. */
@@ -185,10 +189,11 @@ export async function pdfErzeugen(szene: Szene, o: PdfOptionen): Promise<Blob> {
     const s = Math.min(nutzB / szene.breite, nutzH / szene.hoehe, 2);
     seiten.push({ a: { s, ox: RAND + (nutzB - szene.breite * s) / 2, oy: oben + (nutzH - szene.hoehe * s) / 2 } });
   } else {
-    const k = kacheln(szene, nutzB, nutzH);
+    const s = zeichenMassstab(szene, o.zeichenBreite);
+    const k = kacheln({ breite: szene.breite * s, hoehe: szene.hoehe * s }, nutzB, nutzH);
     const spalten = Math.max(...k.map((x) => x.spalte)), zeilen = Math.max(...k.map((x) => x.zeile));
     for (const t of k) {
-      seiten.push({ a: { s: 1, ox: RAND - t.x, oy: oben - t.y }, clip: [RAND, oben, nutzB, nutzH], marke: k.length > 1 ? `Teil ${t.zeile}/${t.spalte} (Zeile/Spalte von ${zeilen}×${spalten})` : undefined });
+      seiten.push({ a: { s, ox: RAND - t.x, oy: oben - t.y }, clip: [RAND, oben, nutzB, nutzH], marke: k.length > 1 ? `Teil ${t.zeile}/${t.spalte} (Zeile/Spalte von ${zeilen}×${spalten})` : undefined });
     }
   }
 

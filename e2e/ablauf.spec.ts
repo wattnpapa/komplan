@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture.js";
 
 test("Plan anlegen, bearbeiten, exportieren und wieder einlesen", async ({ page }) => {
   await page.goto("/");

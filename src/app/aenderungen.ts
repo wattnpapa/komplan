@@ -19,6 +19,12 @@ export const AENDERUNGEN: Aenderung[] = [
     ],
   },
   {
+    datum: "2026-11-19",
+    punkte: [
+      "PDF „auf Seiten teilen“: die Breite der taktischen Zeichen lässt sich in Millimetern einstellen, Vorgabe 50 mm; Plan und Texte wachsen im selben Maß mit.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",
@@ -38,6 +44,7 @@ export const AENDERUNGEN: Aenderung[] = [
       "Hinweisliste mit Sprung zur betroffenen Stelle, Anzeige „offline“ im Kopf, neue Beispiele FwDV 800 und Einsatzübung Simbach (Fb Fü 76, Skizzen FGr FK und ZTr).",
       "Zeichen ELO, PuMA und BW mit Langform (Einsatzleitung Ort, Presse- und Medienarbeit, Bundeswehr) in Suche und Hilfe; PuMA steht jetzt als Führungsstelle statt als Versorgungsstelle.",
       "Dateinamen von Exporten enthalten keine Umlaute und Sonderzeichen mehr; vorher hieß die Datei in manchen Browsern nur „download“.",
+      "Anonyme Reichweitenmessung mit GoatCounter: gezählt wird nur, dass die Seite aufgerufen wurde, nie ein Plan oder Link-Inhalt; auf der Datenschutzseite lässt sich mit „Nicht mitzählen“ widersprechen.",
     ],
   },
 ];

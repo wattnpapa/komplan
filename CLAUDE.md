@@ -9,7 +9,7 @@ komplan.app: Führungsorganisation, Kommunikationsplan und Kommunikationsskizze.
 - Layout rechnet eine Szene in mm; SVG/PNG/PDF/PPTX zeichnen nur die Szene. Gleiche Eingabe, gleiche Szene.
 - Modelländerung: additiv oder `SCHEMA_VERSION` + Schritt in `src/modell/migration.ts` mit Test. `docs/DATENMODELL.md` nachziehen.
 - Sichtbare Änderungen: im selben Commit einen Satz in `src/app/aenderungen.ts`.
-- Keine Laufzeit-Requests an fremde Hosts, keine Reichweitenmessung.
+- Keine Laufzeit-Requests an fremde Hosts außer der Zählung bei GoatCounter (gc.zgo.at, komplan.goatcounter.com). Nie ein Fragment (`#/plan/…`, `#p=…`) mitsenden: Pfad ist fest, Test in `e2e/zaehlung.spec.ts`.
 - `_intern/` nur lesen: keine Namen, Nummern, Adressen, Rufgruppen oder Vorschriftentexte daraus ins Repo. Beispiele mit Musterstadt, 0999…, example.org.
 - Kleinere Festlegungen in `docs/DECISIONS.md`.
 - Commits: Conventional Commits, deutsch.

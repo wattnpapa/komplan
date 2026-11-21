@@ -49,7 +49,7 @@ export function neueKomplanAnsicht(teil: Partial<KomplanAnsicht> = {}): KomplanA
     typ: "kommunikationsplan",
     name: "Kommunikationsplan",
     variante: "organigramm",
-    kontaktLage: "rechts",
+    kontaktLage: "unten",
     felder: ["bezeichnung", "betriebDurch", "leiter", "telefon", "fax", "mobil", "email", "funk", "funkrufname"],
     platzhalter: false,
     papier: { format: "A3", ausrichtung: "quer", grosseFlaeche: "einpassen" },

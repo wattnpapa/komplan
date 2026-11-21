@@ -230,21 +230,54 @@ function layout(k: LKnoten, groessen: Map<string, { b: number; h: number }>, zei
   return verschieben(block, -x0, -y0);
 }
 
-/** Mehrere Wurzeln nebeneinander. */
+/** Rechtecke (x0, y0, x1, y1) der Kästen und Liniensegmente eines Blocks. */
+function belegung(block: LBlock, groessen: Map<string, { b: number; h: number }>): Array<[number, number, number, number]> {
+  const r: Array<[number, number, number, number]> = [];
+  for (const p of block.plaetze) {
+    const g = groessen.get(p.id)!;
+    r.push([p.x, p.y, p.x + g.b, p.y + g.h]);
+  }
+  for (const l of block.linien) {
+    for (let i = 1; i < l.punkte.length; i++) {
+      const [ax, ay] = l.punkte[i - 1]!, [bx, by] = l.punkte[i]!;
+      r.push([Math.min(ax, bx), Math.min(ay, by), Math.max(ax, bx), Math.max(ay, by)]);
+    }
+  }
+  return r;
+}
+
+/** Senkrechter Mindestabstand, unter dem zwei Wurzelblöcke als überlappend gelten. */
+const WALD_LUFT_Y = 3;
+
+/**
+ * Mehrere Wurzeln nebeneinander, so dicht wie möglich: Jeder weitere Baum
+ * rückt nach links, bis ein Kasten oder eine Linie auf gleicher Höhe den
+ * Abstand unterschreitet. Eine einzelne Stelle neben einem breiten Baum steht
+ * so neben dessen Wurzel statt links neben allen Unterstellten.
+ */
 export function waldLayout(wurzeln: LKnoten[], abstand: number): { block: LBlock; groessen: Map<string, { b: number; h: number }> } {
   const groessen = new Map<string, { b: number; h: number }>();
-  let x = 0;
   let plaetze: LPlatz[] = [];
   let linien: LLinie[] = [];
-  let h = 0;
+  let belegt: Array<[number, number, number, number]> = [];
   const zeilen: number[] = [];
   for (const w of wurzeln) zeilenHoehen(w, 0, zeilen);
   for (const w of wurzeln) {
-    const b = verschieben(layout(w, groessen, zeilen, 0), x, 0);
+    const roh = layout(w, groessen, zeilen, 0);
+    const neu = belegung(roh, groessen);
+    let dx = belegt.length ? -Infinity : 0;
+    for (const [ax0, ay0, ax1, ay1] of belegt) {
+      for (const [bx0, by0, , by1] of neu) {
+        if (ay0 < by1 + WALD_LUFT_Y && by0 < ay1 + WALD_LUFT_Y) dx = Math.max(dx, ax1 + abstand - bx0);
+      }
+    }
+    if (!Number.isFinite(dx)) dx = Math.max(...belegt.map((r) => r[2])) + abstand;
+    const b = verschieben(roh, dx, 0);
     plaetze = plaetze.concat(b.plaetze);
     linien = linien.concat(b.linien);
-    x += b.b + abstand;
-    h = Math.max(h, b.h);
+    belegt = belegt.concat(neu.map(([x0, y0, x1, y1]) => [x0 + dx, y0, x1 + dx, y1] as [number, number, number, number]));
   }
-  return { block: { b: Math.max(0, x - abstand), h, ax: 0, wx: 0, wy: 0, plaetze, linien }, groessen };
+  const [x0, y0, x1, y1] = rahmen(plaetze, groessen, linien);
+  const block = verschieben({ b: x1 - x0, h: y1 - y0, ax: 0, wx: 0, wy: 0, plaetze, linien }, -x0, -y0);
+  return { block: { ...block, ax: 0, wx: 0, wy: 0 }, groessen };
 }

@@ -11,6 +11,12 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-21",
+    punkte: [
+      "Kommunikationsplan: Kontaktblöcke stehen in neuen Ansichten mittig unter dem Zeichen, der Plan wird schmaler und im PDF größer. Lose Stellen wie eine Regionalstelle rücken dicht an den Nachbarbaum heran.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

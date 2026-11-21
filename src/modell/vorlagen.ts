@@ -206,7 +206,7 @@ export const VORLAGEN: Vorlage[] = [
           for (const ea of eas) ohneBlock.push(an({ zeichen: kat("Führungsstellen/EAL"), beschriftung: "Heros", zusatzzeilen: [`${ea} 10`] }, elo));
         });
       });
-      const komplan = neueKomplanAnsicht({ name: "Kommunikationsplan", platzhalter: true });
+      const komplan = neueKomplanAnsicht({ name: "Kommunikationsplan", platzhalter: true, kontaktLage: "rechts" });
       for (const id of ohneBlock) komplan.knoten[id] = { kontaktLage: "aus" };
       for (const id of links) komplan.knoten[id] = { kontaktLage: "links" };
       plan.ansichten[komplan.id] = komplan;

@@ -148,7 +148,14 @@ function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "l
     kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, 0, y)));
     k.h = Math.max(k.h, y + block.h);
   } else {
-    const x = Math.max(0, k.zLinks);
+    // Mittig unter Zeichen und Beschriftung; ragt der Block links über den
+    // Kasten hinaus, rückt der Kasten nach rechts.
+    const dx = Math.max(0, block.b / 2 - k.ax);
+    if (dx > 0) {
+      kasten.elemente = kasten.elemente.map((e) => verschiebeElement(e, dx, 0));
+      k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx;
+    }
+    const x = k.ax - block.b / 2;
     const y = k.h + 1;
     kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, x, y)));
     k.b = Math.max(k.b, x + block.b);

@@ -2,6 +2,11 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-21
+
+- **Kontaktblock standardmäßig unter dem Zeichen**, mittig unter Zeichen und Beschriftung. Ein Block rechts macht jede Stelle etwa um die Blockbreite breiter; bei sechs Unterstellten wird der Plan dadurch so breit, dass er auf A4 quer nur noch knapp halb so groß gedruckt wird. Vorhandene Ansichten behalten ihre Einstellung, die Vorlage Schadstoffunfall bleibt bei „rechts" wie das Vorbild.
+- **Mehrere Wurzeln dicht nebeneinander.** Der Wald legt Teilbäume nicht mehr als ganze Rechtecke nebeneinander, sondern schiebt jeden weiteren Baum so weit nach links, bis ein Kasten oder eine Linie auf gleicher Höhe den Abstand unterschreitet. Eine lose Stelle (z. B. Regionalstelle) steht damit neben der Wurzel des Nachbarbaums statt links neben allen Unterstellten. Innerhalb eines Baums gilt weiter das Block-Layout.
+
 ## 2026-11-13 (M4)
 
 - **Fb Fü 76 aus dem Baum**: eigene Stelle = Fokus der Ansicht (Vorgabe: oberste Stelle). Obere Reihe: übergeordnete Stelle, dann die in der Ansicht gewählten Nachbarn, dann Geschwister (vier Plätze). Die vier Kanalfelder zeigen die ersten vier Funkangaben der eigenen Stelle mit ihrem Richtungspfeil. Unterstellte: vier im Raster, fünf in der Reihe „Takt. Einheit", weitere auf Folgeblättern. Kanal oben im Kasten einer Unterstellten: deren Funk mit Richtung ↑, sonst der Führungskanal (↓) der eigenen Stelle; unten: deren Funk mit Richtung ↓.

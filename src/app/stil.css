@@ -194,6 +194,14 @@ input[type="color"] { min-height: 2.75rem; padding: 0.2rem; }
 .eintrag { border: var(--strich) solid var(--linie-fein); padding: var(--r-1) var(--r-2) var(--r-2); margin: 0; min-width: 0; }
 .eintrag label.feld { margin-top: var(--r-1); }
 .eintrag-mehr > summary { font-size: var(--t-xs); color: var(--text-2); cursor: pointer; margin-top: var(--r-1); }
+/* Funk: Rufgruppe/Kanal ist das Hauptfeld. Platzhalter in Fließschrift, damit er nicht wie ein eingetragener Wert aussieht. */
+.funk-wert > input { font-size: var(--t-m); font-weight: 600; }
+.funk-wert > input::placeholder { font-family: var(--schrift); font-weight: 400; font-size: var(--t-s); }
+.funk-wert > input[aria-invalid="true"] { border-color: var(--warn-linie); background: var(--warn-fond); }
+.zeile > label.feld.funk-betrieb { flex: 0 0 5.5rem; }
+.funk-hinweis { margin-top: var(--r-2); font-size: var(--t-s); }
+.funk-hinweis p { margin: 0 0 var(--r-1); }
+.funk-hinweis button { min-height: 2.2rem; padding: 0.15rem 0.55rem; font-size: var(--t-s); }
 .eintrag-aktionen { display: flex; gap: var(--r-1); justify-content: flex-end; margin-top: var(--r-1); }
 .eintrag-aktionen button, .eintrag-liste .aktionen button { min-height: 2.2rem; padding: 0.15rem 0.55rem; font-size: var(--t-s); }
 .nst-tabelle { width: 100%; border-collapse: collapse; font-size: var(--t-s); }

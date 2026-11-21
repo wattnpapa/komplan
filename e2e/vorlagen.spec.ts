@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture.js";
 
 // Bildvergleich: jede Startvorlage einmal als Blatt. Datum fest, damit der Stand gleich bleibt.
 const VORLAGEN = ["fwdv800", "fbfue76", "simbach-fgrfk", "simbach-ztr", "fbfue77-1", "fbfue77-2", "fbfue77-3", "fbfue77-4", "fbfue77-5", "dv1101-gruppe", "dv1101-zug", "dv1101-verband", "dv1101-abschnitte", "thw-einsatzstruktur", "schadstoffunfall", "logistik"];

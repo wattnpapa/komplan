@@ -12,6 +12,7 @@ describe("Vorlagen", () => {
     it(`${v.id} ist gültig und zeichenbar`, () => {
       const plan = v.erzeugen("2026-11-13T10:00");
       expect(planPruefen(plan).filter((h) => h.stufe === "fehler")).toEqual([]);
+      expect(planPruefen(plan).filter((h) => h.regel === "skizze-im-kopf").map((h) => h.text)).toEqual([]);
       for (const s of Object.values(plan.stellen)) {
         if (s.zeichen?.quelle === "katalog") expect(schluessel.has(s.zeichen.schluessel), s.zeichen.schluessel).toBe(true);
         if (s.zeichen?.quelle === "eigen") expect(eigeneVorlage(s.zeichen.vorlage), s.zeichen.vorlage).toBeDefined();

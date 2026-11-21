@@ -379,9 +379,8 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl, nurPlan }: 
               <option value="teilen">auf Seiten teilen</option>
             </select>
           </label>
-          {ansicht.papier.grosseFlaeche === "teilen" && (
-            <label className="feld schmal">
-              Zeichenbreite (mm)
+          <label className="feld schmal">
+              Zeichenbreite im PDF (mm)
               <input
                 type="number"
                 inputMode="numeric"
@@ -392,7 +391,6 @@ export function PlanEigenschaften({ plan, ansicht, aendern, auswahl, nurPlan }: 
                 onChange={(e) => setzeAnsicht((a) => void (a.papier.zeichenBreite = e.target.value === "" ? undefined : Number(e.target.value)), `zb${ansicht.id}`)}
               />
             </label>
-          )}
         </div>
       </details>
 

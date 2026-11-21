@@ -271,7 +271,7 @@ export interface Papier {
   ausrichtung: "quer" | "hoch";
   /** "einpassen" skaliert auf eine Seite, "teilen" verteilt auf mehrere. */
   grosseFlaeche: "einpassen" | "teilen";
-  /** Bei "teilen": Breite der taktischen Zeichen auf dem Papier in mm (Standard 50). */
+  /** Breite der taktischen Zeichen im PDF in mm (Standard 50): bei "teilen" genau, bei "einpassen" höchstens. */
   zeichenBreite?: number;
 }
 

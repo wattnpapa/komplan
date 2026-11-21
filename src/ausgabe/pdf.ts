@@ -4,23 +4,24 @@
  * Vektor über svg2pdf.js mit eingebetteter Roboto Slab. Läuft im Browser
  * (svg2pdf braucht ein DOM); wird erst beim Export nachgeladen.
  *
- * Große Pläne: „einpassen" verkleinert auf eine Seite, „teilen" bringt die
- * taktischen Zeichen auf die gewählte Breite (Standard 50 mm) und verteilt
- * den Plan auf mehrere Seiten mit 10 mm Überlappung und Seitenmarken.
+ * Große Pläne: „einpassen" bringt den Plan auf eine Seite, die taktischen
+ * Zeichen dabei höchstens auf die gewählte Breite (Standard 50 mm); „teilen"
+ * bringt die Zeichen genau auf diese Breite und verteilt den Plan auf mehrere
+ * Seiten mit 10 mm Überlappung und Seitenmarken.
  */
 
 import { jsPDF } from "jspdf";
 import "svg2pdf.js";
 import type { Szene, Element } from "../szene/typen";
 import { strichmuster } from "../szene/typen";
-import { zeichenMassstab } from "../szene/massstab";
+import { einpassMassstab, PDF_RAND as RAND, PDF_VERMERK, pdfNutzflaeche, zeichenMassstab } from "../szene/massstab";
 import { svgIdsPraefixen, zeichenSvg } from "../zeichen/katalog";
 
 export interface PdfOptionen {
   format: "A4" | "A3";
   ausrichtung: "quer" | "hoch";
   grosseFlaeche: "einpassen" | "teilen";
-  /** Bei "teilen": Breite der taktischen Zeichen in mm (Standard 50). */
+  /** Breite der taktischen Zeichen in mm: bei "teilen" genau, bei "einpassen" höchstens. Ohne Angabe: teilen in Originalgröße, einpassen bis Faktor 2. */
   zeichenBreite?: number;
   /** Seitenfuß links. */
   fuss: { titel: string; dtg: string; version: number };
@@ -30,10 +31,7 @@ export interface PdfOptionen {
   zeichenSchriftTtf?: string;
 }
 
-const RAND = 10;
-const FUSS = 7;
 const UEBERLAPPUNG = 10;
-const SEITE: Record<"A4" | "A3", [number, number]> = { A4: [297, 210], A3: [420, 297] };
 
 /** Zeichen außerhalb von WinAnsi ersetzen, sonst setzt jsPDF die ganze Zeile falsch. */
 const ERSATZ: Record<string, string> = { "→": "->", "←": "<-", "↓": "v", "↑": "^", "⋮": ":", "−": "-", "✓": "x", "★": "*" };
@@ -163,9 +161,8 @@ export function kacheln(szene: Pick<Szene, "breite" | "hoehe">, nutzB: number, n
 }
 
 export async function pdfErzeugen(szene: Szene, o: PdfOptionen): Promise<Blob> {
-  const [lang, kurz] = SEITE[o.format];
   const quer = o.ausrichtung === "quer";
-  const seiteB = quer ? lang : kurz, seiteH = quer ? kurz : lang;
+  const { seiteB, seiteH, nutzB, nutzH } = pdfNutzflaeche(o.format, o.ausrichtung, !!o.einstufung?.text);
   const pdf = new jsPDF({ unit: "mm", format: o.format.toLowerCase(), orientation: quer ? "landscape" : "portrait", compress: true });
   pdf.setProperties({ title: o.fuss.titel, subject: `Stand ${o.fuss.dtg}`, creator: "komplan.app" });
   if (o.zeichenSchriftTtf) {
@@ -173,10 +170,7 @@ export async function pdfErzeugen(szene: Szene, o: PdfOptionen): Promise<Blob> {
     pdf.addFont("RobotoSlab-Bold.ttf", "Roboto Slab", "bold");
     pdf.addFont("RobotoSlab-Bold.ttf", "Roboto Slab", "normal");
   }
-  const vermerkOben = o.einstufung?.text ? 5 : 0;
-  const nutzB = seiteB - 2 * RAND;
-  const nutzH = seiteH - 2 * RAND - FUSS - vermerkOben;
-  const oben = RAND + vermerkOben;
+  const oben = RAND + (o.einstufung?.text ? PDF_VERMERK : 0);
 
   const seiten: Array<{ a: Abbildung; clip?: [number, number, number, number]; marke?: string }> = [];
   if (szene.seiten?.length) {
@@ -186,10 +180,10 @@ export async function pdfErzeugen(szene: Szene, o: PdfOptionen): Promise<Blob> {
       seiten.push({ a: { s, ox: RAND + (nutzB - szene.breite * s) / 2, oy: oben - sb.y * s }, clip: [RAND, oben, nutzB, nutzH], marke: szene.seiten.length > 1 ? `Blatt ${i + 1}` : undefined });
     }
   } else if (o.grosseFlaeche === "einpassen") {
-    const s = Math.min(nutzB / szene.breite, nutzH / szene.hoehe, 2);
+    const s = einpassMassstab(szene, nutzB, nutzH, o.zeichenBreite);
     seiten.push({ a: { s, ox: RAND + (nutzB - szene.breite * s) / 2, oy: oben + (nutzH - szene.hoehe * s) / 2 } });
   } else {
-    const s = zeichenMassstab(szene, o.zeichenBreite);
+    const s = o.zeichenBreite === undefined ? 1 : zeichenMassstab(szene, o.zeichenBreite);
     const k = kacheln({ breite: szene.breite * s, hoehe: szene.hoehe * s }, nutzB, nutzH);
     const spalten = Math.max(...k.map((x) => x.spalte)), zeilen = Math.max(...k.map((x) => x.zeile));
     for (const t of k) {

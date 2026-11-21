@@ -13,6 +13,12 @@ export const AENDERUNGEN: Aenderung[] = [
   {
     datum: "2026-11-21",
     punkte: [
+      "Die Zeichenbreite fürs PDF gilt auch beim Einpassen als Obergrenze (Vorgabe 50 mm); das Feld steht jetzt immer im PDF-Dialog und in den Ansichtseigenschaften, der Dialog zeigt die tatsächliche Breite an.",
+    ],
+  },
+  {
+    datum: "2026-11-21",
+    punkte: [
       "Kommunikationsskizze: Tel. und Fax stehen im Stellen-Kasten nur noch, wenn die Stelle eine Nummer hat; leere Zeilen zum Ausfüllen lassen sich je Kasten einschalten und sind in den Vordruck-Vorlagen an.",
       "Kommunikationsskizze: Elemente lassen sich nicht mehr in die Kopfleiste ziehen; was schon darin liegt, meldet die Hinweisliste.",
       "Kommunikationsplan: Der Kontaktblock rückt unter die Linie zu einer seitlich angehängten Stelle, statt von ihr durchgestrichen zu werden.",

@@ -8,6 +8,10 @@ Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 - **Zeichenbereich der Skizze beginnt bei 30 mm** (Kopfleiste 10–28,5 mm plus Luft). Verschieben, Stupsen, Ablegen und Größe ändern halten Elemente darunter; liegt eines schon in der Kopfleiste, geht es nur noch nach unten. Die Hinweisliste meldet solche Elemente (`skizze-im-kopf`, Warnung). Bestehende Lagen werden nicht automatisch verschoben.
 - **Kontaktblock unter seitlichen Linien**: Läuft auf der Seite des Kontaktblocks eine Linie auf Höhe der Zeichenmitte (seitlich angehängte Stelle, Kamm), beginnt der Block 1,2 mm unter dieser Linie statt an der Zeichenoberkante.
 
+## 2026-11-21
+
+- **Zeichenbreite auch beim Einpassen**: Der Plan wird so groß wie möglich auf eine Seite gesetzt, die Zeichen aber höchstens so breit wie eingestellt (Vorgabe 50 mm). Passt der Plan dafür nicht auf die Seite, werden die Zeichen kleiner; der PDF-Dialog nennt dann die erreichte Breite. Die bisherige Grenze „höchstens doppelte Größe" gilt nur noch ohne Zeichenbreite. Skizzen (festes Blatt) und Formulare mit festen Blättern bekommen keine Zeichenbreite; „teilen" druckt dort wie früher in Originalgröße.
+
 ## 2026-11-19
 
 - **Zeichenbreite im PDF** gilt für „auf Seiten teilen": Die ganze Szene wird so skaliert, dass die Grundform (x = 10 … 246 der 256er-viewBox) des größten Zeichens die gewählte Breite hat, Vorgabe 50 mm, erlaubt 5 bis 300 mm. Texte, Linien und Abstände wachsen mit, damit der Plan wie am Bildschirm aussieht; das Layout bleibt unverändert. „Einpassen" und Formulare mit festen Blättern (Fb Fü 76, FwDV 800) ignorieren den Wert. Bisher teilte „teilen" in Originalgröße (Zeichen etwa 16,6 mm breit); bestehende Ansichten mit „teilen" drucken jetzt größer. Gespeichert additiv als `Papier.zeichenBreite`.

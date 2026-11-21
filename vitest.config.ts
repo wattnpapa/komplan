@@ -23,7 +23,9 @@ export default defineConfig({
         test: { name: "logik", environment: "node", include: ["src/**/*.test.ts", "scripts/**/*.test.ts"] },
       },
       {
-        resolve: { alias: kernAliasse },
+        // svg2pdf.js nennt als "main" ein UMD-Bündel, obwohl das Paket "type": "module" ist;
+        // unter node fände es jsPDF nicht. Wie im Bundle die ES-Fassung nehmen.
+        resolve: { alias: [...kernAliasse, { find: /^svg2pdf\.js$/, replacement: "svg2pdf.js/dist/svg2pdf.es.js" }] },
         define: { __APP_VERSION__: JSON.stringify("test") },
         test: {
           name: "oberflaeche",

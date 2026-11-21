@@ -141,13 +141,22 @@ function stelleKasten(stelle: Stelle, eingeklappt: number): Kasten {
 
 const BLOCK_ABSTAND = 2.5;
 
-/** Hängt den Kontaktblock rechts, links oder unter den Kasten einer Stelle. */
-function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "links" | "unten"): void {
+/** Abstand des Kontaktblocks unter einer waagerechten Linie auf Höhe der Zeichenmitte. */
+const UNTER_LINIE = 1.2;
+
+/**
+ * Hängt den Kontaktblock rechts, links oder unter den Kasten einer Stelle.
+ * `linieAufSeite`: auf dieser Seite läuft eine Linie auf Höhe der
+ * Zeichenmitte (seitlich angehängte Stelle, Kamm); der Block beginnt dann
+ * unter der Linie statt an der Zeichenoberkante.
+ */
+function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "links" | "unten", linieAufSeite: { links: boolean; rechts: boolean }): void {
   const k = kasten.knoten;
   const f = kasten.form;
+  const yBlock = (seite: "links" | "rechts") => (linieAufSeite[seite] ? k.mitteY + UNTER_LINIE : Math.max(0, f.oben - 1));
   if (lage === "rechts") {
     const x = k.b + BLOCK_ABSTAND;
-    const y = Math.max(0, f.oben - 1);
+    const y = yBlock("rechts");
     kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, x, y)));
     k.b = x + block.b;
     k.h = Math.max(k.h, y + block.h);
@@ -155,7 +164,7 @@ function blockAnhaengen(kasten: Kasten, block: Kontaktblock, lage: "rechts" | "l
     const dx = block.b + BLOCK_ABSTAND;
     kasten.elemente = kasten.elemente.map((e) => verschiebeElement(e, dx, 0));
     k.ax += dx; k.zLinks += dx; k.zRechts += dx; k.b += dx; f.links += dx;
-    const y = Math.max(0, f.oben - 1);
+    const y = yBlock("links");
     kasten.elemente.push(...block.elemente.map((e) => verschiebeElement(e, 0, y)));
     k.h = Math.max(k.h, y + block.h);
   } else {
@@ -193,7 +202,8 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
   const kaesten = new Map<Id, Kasten>();
   const besucht = new Set<Id>();
 
-  const bauen = (id: Id): LKnoten | undefined => {
+  /** `linieVon`: Seite, auf der die Linie von der übergeordneten Stelle ankommt. */
+  const bauen = (id: Id, linieVon?: "links" | "rechts"): LKnoten | undefined => {
     const stelle = plan.stellen[id];
     if (!stelle || besucht.has(id)) return undefined;
     besucht.add(id);
@@ -212,15 +222,19 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     k.versatz = layout.versatz;
     // Beschriftung unter dem Zeichen: die Linie nach unten beginnt unter dem Text.
     if ((stelle.beschriftungPosition ?? "unten") === "unten" && (stelle.beschriftung.trim() || stelle.zusatzzeilen.some((z) => z.trim()))) k.unten = k.h;
+    const sichtbareKinder = eingeklappt ? [] : stelle.kinder.filter((c) => plan.stellen[c] && !besucht.has(c) && !ansicht.knoten[c]?.ausgeblendet);
     if (mitBlock && blockLage !== "aus") {
       const block = kontaktblock(stelle, ansicht as KomplanAnsicht, plan.stand.zeitpunkt);
-      if (block.h > 0) blockAnhaengen(kasten, block, blockLage);
+      const seitlich = (lage: string) => sichtbareKinder.some((c) => plan.stellen[c]!.anbindung.lage === lage);
+      const linieAufSeite = { links: linieVon === "links" || seitlich("seitlich-links"), rechts: linieVon === "rechts" || seitlich("seitlich-rechts") };
+      if (block.h > 0) blockAnhaengen(kasten, block, blockLage, linieAufSeite);
     }
     if (!eingeklappt) {
       for (const kindId of stelle.kinder) {
-        const kind = bauen(kindId);
-        if (!kind) continue;
-        const lage = plan.stellen[kindId]!.anbindung.lage;
+        const lage = plan.stellen[kindId]?.anbindung.lage;
+        // seitlich rechts angehängt: Linie kommt von links an; Kamm: ebenfalls von links
+        const kind = bauen(kindId, lage === "seitlich-rechts" || (lage === "unten" && k.richtung === "vertikal") ? "links" : lage === "seitlich-links" ? "rechts" : undefined);
+        if (!kind || !lage) continue;
         if (lage === "unten") k.kinder.push(kind);
         else k.seitlich.push({ knoten: kind, seite: lage === "seitlich-links" ? "links" : "rechts" });
       }
@@ -228,7 +242,7 @@ export function fuehrungsorgSzene(plan: Plan, ansicht: BaumAnsicht, optionen: Fu
     return k;
   };
 
-  const wurzeln = sichtbareWurzeln(plan, ansicht).map(bauen).filter((k): k is LKnoten => !!k);
+  const wurzeln = sichtbareWurzeln(plan, ansicht).map((id) => bauen(id)).filter((k): k is LKnoten => !!k);
   const elemente: Element[] = [];
   if (wurzeln.length === 0) return { breite: 2 * RAND + 80, hoehe: 2 * RAND + 20, elemente };
 

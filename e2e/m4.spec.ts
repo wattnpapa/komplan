@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixture.js";
 
 test("Teil-Link: erst Hinweis, dann Link; Öffnen übernimmt den Plan", async ({ page, context }) => {
   await page.goto("/");
@@ -16,6 +16,7 @@ test("Teil-Link: erst Hinweis, dann Link; Öffnen übernimmt den Plan", async ({
 
   // Anderes „Gerät": neuer Kontext ohne Daten
   const fremd = await context.browser()!.newContext({ serviceWorkers: "block" });
+  await fremd.route(/^https:\/\/(gc\.zgo\.at|[^/]*\.goatcounter\.com)\//, (r) => r.abort());
   const seite = await fremd.newPage();
   await seite.goto(link.replace(/^https?:\/\/[^/]+/, "http://localhost:4174"));
   await expect(seite.getByText("Schadstoffunfall Musterküste")).toBeVisible();

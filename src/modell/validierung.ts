@@ -3,10 +3,11 @@
  * Hinweise mit Bezug auf eine Stelle, damit die Oberfläche dorthin springen kann.
  */
 
+import { ZEICHENBEREICH_OBEN } from "./skizze";
 import type { Id, Plan } from "./typen";
 
 export interface Hinweis {
-  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist";
+  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist" | "skizze-im-kopf" | "funk-nur-bedingung";
   stufe: "fehler" | "warnung" | "info";
   text: string;
   stelle?: Id;
@@ -67,6 +68,13 @@ export function planPruefen(plan: Plan): Hinweis[] {
       }
     }
 
+    for (const f of s.funk) {
+      const wert = f.art === "digital" ? f.rufgruppe : f.kanal;
+      if (!wert.trim() && f.bedingung?.trim()) {
+        hinweise.push({ regel: "funk-nur-bedingung", stufe: "warnung", text: `${name(s.id)}: ${f.art === "digital" ? "Rufgruppe" : "Kanal"} leer, aber Bedingung „${f.bedingung.trim()}" eingetragen. Gehört das ins Feld ${f.art === "digital" ? "Rufgruppe" : "Kanal"}?`, stelle: s.id });
+      }
+    }
+
     // Rufgruppen der Kinder, die nach oben zeigen, und eigene nach unten: doppelte auf einer Ebene
     const gruppen = new Map<string, Id[]>();
     for (const k of s.kinder) {
@@ -99,6 +107,9 @@ export function planPruefen(plan: Plan): Hinweis[] {
       if (e.art === "anschluss" && e.bezug) {
         const s = plan.stellen[e.bezug.stelle];
         if (!s || ![...s.kontakte, ...s.funk].some((x) => x.id === e.bezug!.eintrag)) hinweise.push({ regel: "skizze-verwaist", stufe: "fehler", text: `${a.name}: Anschluss verweist auf einen gelöschten Kontakt.` });
+      }
+      if (e.art !== "verbinder" && e.y < ZEICHENBEREICH_OBEN) {
+        hinweise.push({ regel: "skizze-im-kopf", stufe: "warnung", text: `${a.name}: ${e.art === "stelle" && plan.stellen[e.stelle] ? name(e.stelle) : e.art} liegt in der Kopfleiste; nach unten schieben.`, stelle: e.art === "stelle" ? e.stelle : undefined });
       }
       if ((e.art === "anschluss" || e.art === "geraet" || e.art === "stelle" || e.art === "zeichen") && !verbunden.has(e.id)) {
         hinweise.push({ regel: "skizze-unverbunden", stufe: "info", text: `${a.name}: ${e.art === "stelle" && plan.stellen[e.stelle] ? name(e.stelle) : e.art} ohne Verbindung.`, stelle: e.art === "stelle" ? e.stelle : undefined });

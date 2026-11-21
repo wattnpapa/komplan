@@ -2,6 +2,12 @@
 
 Kleinere Festlegungen, die ohne Rückfrage getroffen wurden. Neueste oben.
 
+## 2026-11-21
+
+- **Tel./Fax im Skizzen-Kasten nur bei Bedarf**: Ein Stellen-Kasten zeigt nur Kontakte, die die Stelle hat. Neues additives Feld `SkStelle.leereTelFax` für leere Zeilen zum Ausfüllen; die Vorlagen Fb Fü 77 Skizze 1, 3, 4 und 5 setzen es, weil sie Vordrucke sind. Neue Kästen und die Kästen aus „Skizze aus Stelle" sind 16 mm hoch und wachsen mit dem Inhalt; die eigene Stelle bleibt 30 mm hoch, damit die Anschlüsse am Kasten und nicht am Zeichen andocken.
+- **Zeichenbereich der Skizze beginnt bei 30 mm** (Kopfleiste 10–28,5 mm plus Luft). Verschieben, Stupsen, Ablegen und Größe ändern halten Elemente darunter; liegt eines schon in der Kopfleiste, geht es nur noch nach unten. Die Hinweisliste meldet solche Elemente (`skizze-im-kopf`, Warnung). Bestehende Lagen werden nicht automatisch verschoben.
+- **Kontaktblock unter seitlichen Linien**: Läuft auf der Seite des Kontaktblocks eine Linie auf Höhe der Zeichenmitte (seitlich angehängte Stelle, Kamm), beginnt der Block 1,2 mm unter dieser Linie statt an der Zeichenoberkante.
+
 ## 2026-11-13 (M4)
 
 - **Fb Fü 76 aus dem Baum**: eigene Stelle = Fokus der Ansicht (Vorgabe: oberste Stelle). Obere Reihe: übergeordnete Stelle, dann die in der Ansicht gewählten Nachbarn, dann Geschwister (vier Plätze). Die vier Kanalfelder zeigen die ersten vier Funkangaben der eigenen Stelle mit ihrem Richtungspfeil. Unterstellte: vier im Raster, fünf in der Reihe „Takt. Einheit", weitere auf Folgeblättern. Kanal oben im Kasten einer Unterstellten: deren Funk mit Richtung ↑, sonst der Führungskanal (↓) der eigenen Stelle; unten: deren Funk mit Richtung ↓.

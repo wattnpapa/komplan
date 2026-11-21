@@ -62,6 +62,10 @@ export function SkizzenElementEigenschaften({ plan, ansicht, element, aendern, o
               <option value="rahmen">nur Rahmen (Geräte usw. als eigene Elemente)</option>
             </select>
           </label>
+          <label className="inline">
+            <input type="checkbox" checked={!!element.leereTelFax} onChange={(e) => setze((x) => void (x.art === "stelle" && (x.leereTelFax = e.target.checked || undefined)))} />
+            Tel. und Fax auch ohne Nummer (Linie zum Ausfüllen)
+          </label>
           <label className="feld schmal">
             Mindestens Funk-Fahnen
             <input type="number" min={0} max={6} value={element.leereFunk ?? 0} onChange={(e) => setze((x) => void (x.art === "stelle" && (x.leereFunk = Number(e.target.value) || undefined)))} />

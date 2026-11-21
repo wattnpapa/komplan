@@ -14,6 +14,21 @@ export const FARBE_FUNK = "#d0021b";
 export const FARBE_DRAHT = "#1a4fb4";
 export const FARBE_SCHWARZ = "#000000";
 
+/** Unterkante der Kopfleiste (Rand 10 mm + 18,5 mm) plus 1,5 mm Luft: darüber liegen keine Elemente. */
+export const ZEICHENBEREICH_OBEN = 30;
+
+/**
+ * Senkrechte Verschiebung so begrenzen, dass kein Element (Verbinder
+ * ausgenommen) in die Kopfleiste rutscht. Liegt schon eines darin, geht es
+ * nur noch nach unten.
+ */
+export function dyBegrenzen(elemente: Iterable<Pick<SkizzenElement, "art" | "y">>, dy: number): number {
+  let oben = Infinity;
+  for (const e of elemente) if (e.art !== "verbinder") oben = Math.min(oben, e.y);
+  if (oben === Infinity) return dy;
+  return Math.max(dy, Math.min(0, ZEICHENBEREICH_OBEN - oben));
+}
+
 export type SkizzenVorlage = "leer" | "skizze-1" | "skizze-2" | "skizze-3" | "skizze-4" | "skizze-5";
 
 export const SKIZZEN_VORLAGEN: Array<{ id: SkizzenVorlage; titel: string; beschreibung: string }> = [
@@ -119,8 +134,8 @@ function leereStelle(plan: Plan, name: string): Id {
 /** Fb Fü 77 Skizze 1/3/4: gemeinsames Gerüst; NSt-Tabelle und Gegenstellen je Variante. */
 function geruest(plan: Plan, a: SkizzenAnsicht, eigen: Id, variante: "1" | "3" | "4"): void {
   // Zwei übergeordnete/benachbarte Stellen oben links
-  const sa = stelle(a, leereStelle(plan, "Übergeordnete Stelle"), 11, 33, 58, 22, { leereFunk: 1 });
-  const sb = stelle(a, leereStelle(plan, "Benachbarte Stelle"), 74, 33, 58, 22, { leereFunk: 1 });
+  const sa = stelle(a, leereStelle(plan, "Übergeordnete Stelle"), 11, 33, 58, 22, { leereFunk: 1, leereTelFax: true });
+  const sb = stelle(a, leereStelle(plan, "Benachbarte Stelle"), 74, 33, 58, 22, { leereFunk: 1, leereTelFax: true });
   // Eigene FüSt mit Geräten
   const fuest = stelle(a, eigen, 100, 74, 112, 53, { inhalt: "rahmen" });
   const g4a = geraet(a, "4m", 102.5, 89);
@@ -166,16 +181,16 @@ function geruest(plan: Plan, a: SkizzenAnsicht, eigen: Id, variante: "1" | "3" |
   // Gegenstellen rechts
   const anzahl = variante === "3" ? 3 : 4;
   for (let i = 0; i < anzahl; i++) {
-    const g = stelle(a, leereStelle(plan, `Gegenstelle ${i + 1}`), 224, 32 + i * 41, 59, 36, { leereFunk: 2 });
+    const g = stelle(a, leereStelle(plan, `Gegenstelle ${i + 1}`), 224, 32 + i * 41, 59, 36, { leereFunk: 2, leereTelFax: true });
     verbinde(a, port(fuest, "r", 0.25), port(g, "l", 0.75), FARBE_SCHWARZ, "gestrichelt");
   }
   verbinde(a, port(g4c, "r"), port(fuest, "r", 0.5));
 }
 
 function skizze5(plan: Plan, a: SkizzenAnsicht, eigen: Id): void {
-  const fuest = stelle(a, eigen, 118, 33, 62, 40, { leereFunk: 3 });
+  const fuest = stelle(a, eigen, 118, 33, 62, 40, { leereFunk: 3, leereTelFax: true });
   const spalte = (x: number) =>
-    [0, 1, 2].map((i) => stelle(a, leereStelle(plan, `Gegenstelle ${x < 100 ? "L" : "R"}${i + 1}`), x, 33 + i * 40, 58, 34, { leereFunk: 2 }));
+    [0, 1, 2].map((i) => stelle(a, leereStelle(plan, `Gegenstelle ${x < 100 ? "L" : "R"}${i + 1}`), x, 33 + i * 40, 58, 34, { leereFunk: 2, leereTelFax: true }));
   const links = spalte(28);
   const rechts = spalte(212);
   for (const g of links) verbinde(a, port(g, "r", 0.7), port(fuest, "l", 0.7));
@@ -224,7 +239,7 @@ export function skizzeAusStelle(plan: Plan, stelleId: Id): SkizzenAnsicht {
 
   let linksY = 34;
   if (elternId) {
-    const oben = stelle(a, elternId, 12, 34, 64, 28);
+    const oben = stelle(a, elternId, 12, 34, 64, 16);
     verbinde(a, port(oben, "r", 0.75), port(eigen, "l", 0.8), funkFarbe(plan.stellen[elternId]), "durchgezogen", [], "funk-digital");
     linksY = 82;
   }
@@ -238,7 +253,7 @@ export function skizzeAusStelle(plan: Plan, stelleId: Id): SkizzenAnsicht {
   const kinder = s.kinder.filter((k) => plan.stellen[k]);
   if (kinder.length <= 4) {
     kinder.forEach((k, i) => {
-      const id = stelle(a, k, 214, 34 + i * 42, 70, 30);
+      const id = stelle(a, k, 214, 34 + i * 42, 70, 16);
       verbinde(a, port(eigen, "r", 0.7), port(id, "l", 0.8), funkFarbe(s), "durchgezogen", [], "funk-digital");
     });
   } else {

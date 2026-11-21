@@ -373,6 +373,8 @@ export interface SkStelle extends ElementBasis {
   zeige?: Id[];
   /** Mindestzahl Funk-Fahnen im Kasten; fehlende bleiben leer zum Ausfüllen (Vorlagen). */
   leereFunk?: number;
+  /** Tel.- und Fax-Zeile auch ohne Nummer als Linie zum Ausfüllen (Vorlagen). Sonst nur vorhandene Kontakte. */
+  leereTelFax?: boolean;
   /** "rahmen": nur Zeichen, Funkrufname und leerer Kasten; Geräte und Tabellen liegen als eigene Elemente darin (eigene FüSt der Vorlagen). */
   inhalt?: "voll" | "rahmen";
 }

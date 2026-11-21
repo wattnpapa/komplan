@@ -3,10 +3,11 @@
  * Hinweise mit Bezug auf eine Stelle, damit die Oberfläche dorthin springen kann.
  */
 
+import { ZEICHENBEREICH_OBEN } from "./skizze";
 import type { Id, Plan } from "./typen";
 
 export interface Hinweis {
-  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist";
+  regel: "zyklus" | "doppelt-eingehaengt" | "verwaist" | "ohne-erreichbarkeit" | "rufgruppe-doppelt" | "abgelaufen" | "noch-nicht-gueltig" | "skizze-unverbunden" | "skizze-verwaist" | "skizze-im-kopf";
   stufe: "fehler" | "warnung" | "info";
   text: string;
   stelle?: Id;
@@ -99,6 +100,9 @@ export function planPruefen(plan: Plan): Hinweis[] {
       if (e.art === "anschluss" && e.bezug) {
         const s = plan.stellen[e.bezug.stelle];
         if (!s || ![...s.kontakte, ...s.funk].some((x) => x.id === e.bezug!.eintrag)) hinweise.push({ regel: "skizze-verwaist", stufe: "fehler", text: `${a.name}: Anschluss verweist auf einen gelöschten Kontakt.` });
+      }
+      if (e.art !== "verbinder" && e.y < ZEICHENBEREICH_OBEN) {
+        hinweise.push({ regel: "skizze-im-kopf", stufe: "warnung", text: `${a.name}: ${e.art === "stelle" && plan.stellen[e.stelle] ? name(e.stelle) : e.art} liegt in der Kopfleiste; nach unten schieben.`, stelle: e.art === "stelle" ? e.stelle : undefined });
       }
       if ((e.art === "anschluss" || e.art === "geraet" || e.art === "stelle" || e.art === "zeichen") && !verbunden.has(e.id)) {
         hinweise.push({ regel: "skizze-unverbunden", stufe: "info", text: `${a.name}: ${e.art === "stelle" && plan.stellen[e.stelle] ? name(e.stelle) : e.art} ohne Verbindung.`, stelle: e.art === "stelle" ? e.stelle : undefined });

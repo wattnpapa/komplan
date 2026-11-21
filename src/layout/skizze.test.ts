@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { neuerPlan, neueStelle, stelleAnlegen, stelleLoeschen } from "../modell/plan";
-import { elementAnlegen, elementeKopieren, elementeLoeschen, neueSkizzenAnsicht, skizzeAusStelle, skizzeAusVorlage, SKIZZEN_VORLAGEN } from "../modell/skizze";
+import { dyBegrenzen, elementAnlegen, elementeKopieren, elementeLoeschen, neueSkizzenAnsicht, skizzeAusStelle, skizzeAusVorlage, SKIZZEN_VORLAGEN, ZEICHENBEREICH_OBEN } from "../modell/skizze";
 import type { Plan, SkizzenAnsicht } from "../modell/typen";
 import { planPruefen } from "../modell/validierung";
 import type { Element } from "../szene/typen";
@@ -125,5 +125,44 @@ describe("Kommunikationsskizze", () => {
     elementAnlegen(a, { art: "geraet", geraet: "4m", x: 10, y: 40, b: 8, h: 7.5 });
     plan.ansichten[a.id] = a;
     expect(planPruefen(plan).map((h) => h.regel)).toContain("skizze-unverbunden");
+  });
+
+  it("zeigt Tel. und Fax im Kasten nur, wenn die Stelle sie hat", () => {
+    const { plan, eal, ea } = beispiel();
+    const a = neueSkizzenAnsicht();
+    const kasten = elementAnlegen(a, { art: "stelle", stelle: ea[0]!, x: 20, y: 40, b: 62, h: 16 });
+    elementAnlegen(a, { art: "stelle", stelle: eal, x: 120, y: 40, b: 62, h: 16 });
+    let t = texte(skizzeSzene(plan, a).elemente);
+    expect(t.filter((x) => x === "Tel.:")).toHaveLength(1);
+    expect(t.filter((x) => x === "Fax.:")).toHaveLength(1);
+    // Vorlagen-Schalter: leere Zeilen zum Ausfüllen
+    const e = a.elemente[kasten]!;
+    if (e.art === "stelle") e.leereTelFax = true;
+    t = texte(skizzeSzene(plan, a).elemente);
+    expect(t.filter((x) => x === "Tel.:")).toHaveLength(2);
+    expect(t.filter((x) => x === "Fax.:")).toHaveLength(2);
+  });
+
+  it("hält Elemente aus der Kopfleiste heraus", () => {
+    expect(dyBegrenzen([{ art: "stelle", y: 40 }], -20)).toBe(ZEICHENBEREICH_OBEN - 40);
+    expect(dyBegrenzen([{ art: "stelle", y: 40 }, { art: "verbinder", y: 0 }], 5)).toBe(5);
+    // liegt schon in der Kopfleiste: nur noch nach unten
+    expect(dyBegrenzen([{ art: "stelle", y: 15 }], -3)).toBe(0);
+    expect(dyBegrenzen([{ art: "stelle", y: 15 }], 4)).toBe(4);
+    const plan = neuerPlan();
+    const a = neueSkizzenAnsicht();
+    elementAnlegen(a, { art: "geraet", geraet: "4m", x: 10, y: 15, b: 8, h: 7.5 });
+    plan.ansichten[a.id] = a;
+    expect(planPruefen(plan).map((h) => h.regel)).toContain("skizze-im-kopf");
+  });
+
+  it("Vorlagen und „Skizze aus Stelle“ beginnen unter der Kopfleiste", () => {
+    for (const v of SKIZZEN_VORLAGEN) {
+      const plan = neuerPlan();
+      const a = skizzeAusVorlage(plan, v.id);
+      for (const e of Object.values(a.elemente)) if (e.art !== "verbinder") expect(e.y, `${v.id} ${e.art}`).toBeGreaterThanOrEqual(ZEICHENBEREICH_OBEN);
+    }
+    const { plan, eal } = beispiel();
+    for (const e of Object.values(skizzeAusStelle(plan, eal).elemente)) if (e.art !== "verbinder") expect(e.y).toBeGreaterThanOrEqual(ZEICHENBEREICH_OBEN);
   });
 });

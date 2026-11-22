@@ -108,21 +108,34 @@ function anschlussZeichnen(e: SkAnschluss, plan: Plan, h: Herkunft): Element[] {
   return aus;
 }
 
-/** Mindesthöhe eines Stellen-Kastens für seinen Inhalt. */
-export function stelleInhalt(e: SkStelle, s: Stelle | undefined, detail: SkizzenAnsicht["detail"]): { kontakte: Kontakt[]; funk: Array<Funkangabe | undefined> } {
-  if (e.inhalt === "rahmen") return { kontakte: [], funk: [] };
+const KONTAKT_LABEL: Record<Kontakt["art"], string> = { telefon: "Tel.", fax: "Fax.", mobil: "Mobilfunk.", email: "Mail", sat: "Sat.", messenger: "Messenger", sonstig: "" };
+
+/**
+ * Inhalt eines Stellen-Kastens: Kontaktzeilen [Bezeichnung, Wert] und
+ * Funk-Fahnen. Tel. und Fax stehen nur da, wenn die Stelle sie hat; leere
+ * Zeilen zum Ausfüllen nur mit `leereTelFax` (Vorlagen). Ein Kontakt ohne
+ * Nummer wird zur Linie zum Ausfüllen.
+ */
+export function stelleInhalt(e: SkStelle, s: Stelle | undefined, detail: SkizzenAnsicht["detail"]): { zeilen: Array<[string, string]>; funk: Array<Funkangabe | undefined> } {
+  if (e.inhalt === "rahmen") return { zeilen: [], funk: [] };
   const zeige = e.zeige && e.zeige.length ? new Set(e.zeige) : undefined;
   const kontakte = detail === "technisch" ? (s?.kontakte ?? []).filter((k) => (!zeige || zeige.has(k.id)) && k.art !== "email") : [];
+  const zeilen: Array<[string, string]> = kontakte.map((k) => [`${k.bezeichnung || KONTAKT_LABEL[k.art]}:`, k.wert]);
+  if (detail === "technisch" && e.leereTelFax) {
+    if (!kontakte.some((k) => k.art === "telefon")) zeilen.unshift(["Tel.:", ""]);
+    if (!kontakte.some((k) => k.art === "fax")) zeilen.splice(1, 0, ["Fax.:", ""]);
+  }
   const funk: Array<Funkangabe | undefined> = (s?.funk ?? []).filter((f) => !zeige || zeige.has(f.id));
   while (funk.length < (e.leereFunk ?? 0)) funk.push(undefined);
-  return { kontakte, funk };
+  return { zeilen, funk };
 }
 
 const ZEICHEN_KASTEN = 13;
 
-function inhaltHoehe(e: SkStelle, kontakte: number, funk: number, detail: SkizzenAnsicht["detail"]): number {
+/** Mindesthöhe des Kastens unter dem Zeichen für seinen Inhalt. */
+function inhaltHoehe(e: SkStelle, zeilen: number, funk: number): number {
   if (e.inhalt === "rahmen") return 0;
-  return (detail === "technisch" ? Math.max(kontakte, 2) * ZEILE : 0) + funk * (FAHNE_H + 1.2) + 2.5;
+  return zeilen * ZEILE + funk * (FAHNE_H + 1.2) + 2.5;
 }
 const ZEILE = 4.6;
 const FAHNE_H = 4.6;
@@ -142,24 +155,19 @@ function stelleZeichnen(e: SkStelle, plan: Plan, detail: SkizzenAnsicht["detail"
   const beschriftung = s ? [s.nummer, s.beschriftung].filter(Boolean).join(" ") : "";
   if (beschriftung) aus.push({ art: "text", x: lx, y: e.y + 3, text: beschriftung, groesse: 7.5, anker: "start", herkunft: h });
 
-  const { kontakte, funk } = stelleInhalt(e, s, detail);
+  const { zeilen, funk } = stelleInhalt(e, s, detail);
   const oben = e.y + kastenH + 2.5;
-  const inhaltH = inhaltHoehe(e, kontakte.length, funk.length, detail);
+  const inhaltH = inhaltHoehe(e, zeilen.length, funk.length);
   const hoehe = Math.max(e.y + e.h - oben, inhaltH);
   aus.push({ art: "rechteck", x: e.x, y: oben, b: e.b, h: hoehe, fuellung: "#ffffff", strich: SCHWARZ, staerke: LINIE, herkunft: h });
   let y = oben + 1;
-  if (detail === "technisch" && e.inhalt !== "rahmen") {
-    const zeilen: Array<[string, string]> = kontakte.map((k) => [`${k.bezeichnung || { telefon: "Tel.", fax: "Fax.", mobil: "Mobilfunk.", email: "Mail", sat: "Sat.", messenger: "Messenger", sonstig: "" }[k.art]}:`, k.wert]);
-    if (!kontakte.some((k) => k.art === "telefon")) zeilen.unshift(["Tel.:", ""]);
-    if (!kontakte.some((k) => k.art === "fax")) zeilen.splice(1, 0, ["Fax.:", ""]);
-    for (const [label, wert] of zeilen) {
-      y += ZEILE;
-      const gx = e.x + 2;
-      aus.push({ art: "text", x: gx, y: y - 1, text: label, groesse: 7, fett: true, anker: "start", herkunft: h });
-      const wx = gx + Math.max(10, textBreite(label, 7, true) + 1.2);
-      if (wert) aus.push({ art: "text", x: wx, y: y - 1, text: wert, groesse: 8, anker: "start", herkunft: h });
-      else aus.push({ art: "linie", punkte: [[wx, y - 0.8], [e.x + e.b - 3, y - 0.8]], strich: SCHWARZ, staerke: 0.2, linie: "gepunktet", herkunft: h });
-    }
+  for (const [label, wert] of zeilen) {
+    y += ZEILE;
+    const gx = e.x + 2;
+    aus.push({ art: "text", x: gx, y: y - 1, text: label, groesse: 7, fett: true, anker: "start", herkunft: h });
+    const wx = gx + Math.max(10, textBreite(label, 7, true) + 1.2);
+    if (wert) aus.push({ art: "text", x: wx, y: y - 1, text: wert, groesse: 8, anker: "start", herkunft: h });
+    else aus.push({ art: "linie", punkte: [[wx, y - 0.8], [e.x + e.b - 3, y - 0.8]], strich: SCHWARZ, staerke: 0.2, linie: "gepunktet", herkunft: h });
   }
   for (const f of funk) {
     y += 1.2;
@@ -279,9 +287,9 @@ function elementZeichnen(e: SkizzenElement, plan: Plan, ansicht: SkizzenAnsicht,
 /** Rahmen eines Elements zum Andocken; Stellen-Kästen wachsen mit ihrem Inhalt. */
 export function elementRahmen(e: SkizzenElement, plan: Plan, detail: SkizzenAnsicht["detail"]): Rahmen {
   if (e.art === "stelle") {
-    const { kontakte, funk } = stelleInhalt(e, plan.stellen[e.stelle], detail);
+    const { zeilen, funk } = stelleInhalt(e, plan.stellen[e.stelle], detail);
     const kastenH = (ZEICHEN_KASTEN * 128) / 256;
-    return { x: e.x, y: e.y, b: e.b, h: Math.max(e.h, kastenH + 2.5 + inhaltHoehe(e, kontakte.length, funk.length, detail)) };
+    return { x: e.x, y: e.y, b: e.b, h: Math.max(e.h, kastenH + 2.5 + inhaltHoehe(e, zeilen.length, funk.length)) };
   }
   return { x: e.x, y: e.y, b: e.b, h: e.h };
 }
@@ -336,5 +344,3 @@ function verschieben(e: Element, dx: number, dy: number): Element {
   return { ...e, x: e.x + dx, y: e.y + dy };
 }
 
-/** Oberkante des Zeichenbereichs unter der Kopfleiste. */
-export const SKIZZE_OBEN = SKIZZE_RAND + 18.5 + 3;

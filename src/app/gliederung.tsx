@@ -1,4 +1,4 @@
-import { useState, type DragEvent, type KeyboardEvent } from "react";
+import { useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { istVorfahrOderSelbst } from "../modell/baum";
 import type { Ziel } from "../modell/plan";
 import type { Id, Plan, Stelle } from "../modell/typen";
@@ -26,6 +26,7 @@ export function Gliederung({
   onZuklappen,
   onUmhaengen,
   onTaste,
+  onKontext,
 }: {
   plan: Plan;
   auswahl: Id[];
@@ -34,8 +35,11 @@ export function Gliederung({
   onZuklappen: (id: Id) => void;
   onUmhaengen: (id: Id, ziel: Ziel) => void;
   onTaste: (e: KeyboardEvent, id: Id) => void;
+  /** Kontextmenü für eine Stelle; `tastatur`, wenn per Taste statt Maus geöffnet. */
+  onKontext?: (id: Id, x: number, y: number, tastatur: boolean) => void;
 }) {
   const [ziehe, setZiehe] = useState<Id>();
+  const kontextPerTaste = useRef(0);
   const [ueber, setUeber] = useState<{ id: Id | "wurzel" | "lose"; lage: Lage }>();
 
   const lageAus = (e: DragEvent<HTMLElement>): Lage => {
@@ -69,7 +73,26 @@ export function Gliederung({
           tabIndex={gewaehlt && auswahl[0] === id ? 0 : -1}
           data-stelle={id}
           onClick={(e) => onAuswahl(id, e.ctrlKey || e.metaKey || e.shiftKey)}
-          onKeyDown={(e) => onTaste(e, id)}
+          onPointerDown={() => void (kontextPerTaste.current = 0)}
+          onKeyDown={(e) => {
+            if (onKontext && (e.key === "ContextMenu" || (e.key === "F10" && e.shiftKey))) {
+              e.preventDefault();
+              kontextPerTaste.current = Date.now();
+              const r = e.currentTarget.getBoundingClientRect();
+              onKontext(id, r.left + 24, r.bottom, true);
+              return;
+            }
+            onTaste(e, id);
+          }}
+          onContextMenu={(e) => {
+            if (!onKontext) return;
+            e.preventDefault();
+            // Die Kontextmenü-Taste löst nach keydown oft noch contextmenu aus; das Menü ist dann schon offen.
+            if (Date.now() - kontextPerTaste.current < 1000) return void (kontextPerTaste.current = 0);
+            if (!gewaehlt || auswahl.length > 1) onAuswahl(id, false);
+            e.currentTarget.focus();
+            onKontext(id, e.clientX, e.clientY, false);
+          }}
           onDragStart={(e) => {
             setZiehe(id);
             e.dataTransfer.effectAllowed = "move";

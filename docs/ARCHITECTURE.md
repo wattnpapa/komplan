@@ -15,14 +15,14 @@ Angesehen: `wattnpapa/einsatzauftrag` (letzter Commit 30.10.2026) und `wattnpapa
 | Tests | Vitest | Vitest mit zwei Projekten `logik` (node) / `oberflaeche` (jsdom), E2E mit Cucumber + Playwright | Vitest-Aufteilung wie erfassungsbogen; E2E mit `@playwright/test` (so im Auftrag verlangt) |
 | Gestaltung | Token-CSS aus erfassungsbogen kopiert | `DESIGN.md` „Amtlich, aber wach" | Token-Satz aus `DESIGN.md`/`stil.css` 1:1, Radius 0, vier Anzeigemodi Standard/Feld/Dunkel/Nacht, Archivo Variable lokal |
 | Kopf/Fuß | blauer Kopf mit Anzeige-Schalter | Fußzeile mit Version, Impressum/Datenschutz/Über, Werkzeugzeile `einsatz.tools` | beides; Werkzeugzeile um `komplan.app` ergänzt (alphabetisch) |
-| Impressum/Datenschutz | `web/impressum.html`, `web/datenschutz.html` | `public/impressum.html`, `public/datenschutz.html` | statische Seiten unter `public/`, Text angepasst (keine Reichweitenmessung) |
+| Impressum/Datenschutz | `web/impressum.html`, `web/datenschutz.html` | `public/impressum.html`, `public/datenschutz.html` | statische Seiten unter `public/`, Text angepasst (mit Abschnitt Reichweitenmessung) |
 | PDF | jsPDF, eigenes Satzmodell „Liste von Zeichenelementen in mm" | pdfmake | **jsPDF** + Satzmodell-Muster aus einsatzauftrag (siehe 3.) |
 | Teil-Link | `CompressionStream("deflate-raw")` + base64url im Fragment | QR-Transport | Verfahren aus einsatzauftrag, Fragment `#p=` |
 | Deployment | `.github/workflows/pages.yml` → GitHub Pages | Release-Workflow, mehrere Plattformen | Pages-Workflow aus einsatzauftrag, CI-Prüflauf aus erfassungsbogen (ohne Electron/Capacitor) |
 | Lizenz | EUPL-1.2 | EUPL-1.2 | EUPL-1.2 |
 | Konventionen | deutsche Bezeichner, Conventional Commits, relative Importe mit `.js` | deutsche Bezeichner, Changelog `aenderungen.ts` „Was ist neu" | deutsche Bezeichner, Conventional Commits, Changelog wie erfassungsbogen |
 
-Abweichung von beiden: Beide Apps zählen Aufrufe über GoatCounter. Der Auftrag verbietet externe Requests zur Laufzeit, deshalb gibt es in komplan keine Reichweitenmessung, und die CSP erlaubt `connect-src 'self'` ohne Ausnahme.
+Wie beide Apps zählt komplan Aufrufe über GoatCounter, aber nur den festen Pfad der Seite, nie das Fragment (siehe Abschnitt 7).
 
 ## 2. Bausteine
 
@@ -70,7 +70,7 @@ Eigene Umsetzung (~400 Zeilen, mit Tests) des „tidy tree" nach Reingold-Tilfor
 
 - Kinder `horizontal` (Standard): Sammelschiene unter dem Elternknoten, senkrechte Stiche zu den Kindern.
 - Kinder `vertikal`: Kinder untereinander, Linie seitlich als Kamm (wie Einheitenlisten unter EAL in RÜBEX24).
-- `seitlich links/rechts`: Knoten neben dem Elternknoten auf gleicher Höhe, waagerechte Linie (Gegenstab, FZ FK neben ÜL, LtS gestrichelt neben E). Zählt nicht in die Breite des Teilbaums darunter.
+- `seitlich links/rechts`: Knoten neben dem Elternknoten auf gleicher Höhe, waagerechte Linie (Gegenstab, FZ FK neben ÜL, LtS gestrichelt neben E). Mehrere auf derselben Seite stehen untereinander an einer senkrechten Schiene. Zählt nicht in die Breite des Teilbaums darunter.
 - Abstand je Knoten überschreibbar, eingeklappte Teilbäume zeigen „+n".
 - Kontaktblöcke (Komplan-Organigramm) gehen als Teil der Knotengröße ins Layout ein (rechts oder unter dem Zeichen).
 
@@ -106,7 +106,8 @@ Kein Auto-Layout. Elemente haben eigene Positionen in mm. Verbinder docken an **
 
 ## 7. Sicherheit und Datenschutz
 
-- Keine Laufzeit-Requests außer zur eigenen Herkunft. CSP im Build wie erfassungsbogen (Hashes für Inline-Skripte), ohne GoatCounter-Ausnahme.
+- Keine Laufzeit-Requests außer zur eigenen Herkunft und der Zählung bei GoatCounter. CSP im Build wie erfassungsbogen (Hashes für Inline-Skripte); Ausnahmen nur `script-src https://gc.zgo.at` sowie `img-src` und `connect-src https://komplan.goatcounter.com`.
+- Reichweitenmessung: Skript wird nach dem load-Event eingehängt, `window.goatcounter.path` ist fest `location.pathname`, `no_events` ist gesetzt. Das Fragment (`#/plan/<id>`, `#p=<Plan>`) verlässt das Gerät nie; `e2e/zaehlung.spec.ts` sichert das ab. Widerspruch über localStorage `skipgc`. count.js wird nicht vorab gecacht.
 - Alle Daten nur in IndexedDB des Geräts. Teil-Link und JSON enthalten personenbezogene Daten; vor dem Erzeugen ein Hinweis-Dialog.
 - Eingelesene JSON/Links werden gegen das Schema geprüft, SVG-Logos werden nicht als SVG übernommen, sondern zu PNG gerastert (kein Skript im eingebetteten SVG).
 

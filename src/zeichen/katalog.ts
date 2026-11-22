@@ -11,7 +11,7 @@
 
 import { istGeladen, KATALOG, KATALOG_QUELLE, katalogEinspielen, katalogEintrag, katalogSvg, ordnerLaden, zeichenLaden, type KatalogEintrag } from "@bos/taktische-zeichen/katalog";
 import type { Organisation, ZeichenRef } from "../modell/typen";
-import { eigeneVorlage, GRUNDFORMEN, xml } from "./eigen/vorlagen";
+import { eigeneVorlage, einheit, fahrzeug, fuehrungsstelle, GRUNDFORMEN, kennungText, versorgung, xml } from "./eigen/vorlagen";
 
 export { istGeladen, KATALOG, KATALOG_QUELLE, katalogEinspielen, katalogEintrag, ordnerLaden, type KatalogEintrag };
 
@@ -28,20 +28,52 @@ const PLATZHALTER = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width
 export function zeichenSvg(ref: ZeichenRef | undefined, organisation?: Organisation): string {
   if (!ref) return PLATZHALTER;
   switch (ref.quelle) {
-    case "katalog":
-      return katalogSvg(ref.schluessel) ?? PLATZHALTER;
+    case "katalog": {
+      const svg = katalogSvg(ref.schluessel);
+      if (!svg) return PLATZHALTER;
+      return ref.kennung && KATALOG_RECHTECK.test(svg) ? svg.replace(/<\/svg>\s*$/, `${kennungText(ref.kennung, "#000000")}</svg>`) : svg;
+    }
     case "eigen": {
       const v = eigeneVorlage(ref.vorlage);
       if (!v) return PLATZHALTER;
-      return v.form({ ...v.vorgabe, ...(ref.text !== undefined ? { text: ref.text } : {}), ...(ref.staerke !== undefined ? { staerke: ref.staerke } : {}) });
+      return v.form({
+        ...v.vorgabe,
+        ...(ref.text !== undefined ? { text: ref.text } : {}),
+        ...(ref.staerke !== undefined ? { staerke: ref.staerke } : {}),
+        ...(ref.kennung !== undefined ? { kennung: ref.kennung || undefined } : {}),
+      });
     }
     case "frei": {
       const form = GRUNDFORMEN[ref.grundform] ?? GRUNDFORMEN.einheit;
-      return form({ text: ref.text, farbe: ref.farbe, textfarbe: ref.textfarbe, kennung: undefined, staerke: undefined });
+      const kennung = KENNUNG_GRUNDFORMEN.has(ref.grundform) ? ref.kennung || undefined : undefined;
+      return form({ text: ref.text, farbe: ref.farbe, textfarbe: ref.textfarbe, kennung, staerke: undefined });
     }
   }
   void organisation;
   return PLATZHALTER;
+}
+
+/** Grundrechteck der Führungsstellen in der Sammlung; nur dort passt die Kennung unten rechts. */
+const KATALOG_RECHTECK = /<rect [^>]*x="10" y="64" width="236" height="128"/;
+const KENNUNG_GRUNDFORMEN = new Set(["fuehrungsstelle", "einheit", "fahrzeug"]);
+const KENNUNG_FORMEN = new Set([fuehrungsstelle, einheit, fahrzeug, versorgung]);
+
+/** Kann dieses Zeichen eine Kennung („THW", „FW") unten rechts tragen? */
+export function kennungMoeglich(ref: ZeichenRef | undefined): boolean {
+  if (!ref) return false;
+  if (ref.quelle === "katalog") return KATALOG_RECHTECK.test(katalogSvg(ref.schluessel) ?? "");
+  if (ref.quelle === "eigen") {
+    const v = eigeneVorlage(ref.vorlage);
+    return !!v && KENNUNG_FORMEN.has(v.form);
+  }
+  return KENNUNG_GRUNDFORMEN.has(ref.grundform);
+}
+
+/** Kennung, die das Zeichen tatsächlich zeigt (Vorgabe der eigenen Vorlage eingerechnet). */
+export function zeichenKennung(ref: ZeichenRef | undefined): string {
+  if (!ref) return "";
+  if (ref.quelle === "eigen" && ref.kennung === undefined) return eigeneVorlage(ref.vorlage)?.vorgabe.kennung ?? "";
+  return ref.kennung ?? "";
 }
 
 /** Anzeigename eines Zeichens für Gliederung und Suche. */

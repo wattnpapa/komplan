@@ -11,6 +11,12 @@ export interface Aenderung {
 
 export const AENDERUNGEN: Aenderung[] = [
   {
+    datum: "2026-11-22",
+    punkte: [
+      "Führungsstellen und andere rechteckige Zeichen tragen auf Wunsch eine Kennung unten rechts in der Fahne, wer die Stelle betreibt, etwa THW oder FW; auch bei den Führungsstellen aus der Sammlung.",
+    ],
+  },
+  {
     datum: "2026-11-13",
     punkte: [
       "Erste Fassung: Pläne anlegen, umbenennen, duplizieren, in den Papierkorb legen und wiederherstellen, alles nur auf diesem Gerät.",

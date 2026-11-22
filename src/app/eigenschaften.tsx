@@ -4,8 +4,8 @@ import { THW_ORTSVERBAENDE } from "@bos/vokabulare/thw-ov";
 import { dtgAusZeitpunkt, jetzt, zeitpunktAusDtg, zeitpunktLesbar } from "../modell/dtg";
 import { neueId } from "../modell/id";
 import type { FuehrungsorgAnsicht, Id, KomplanAnsicht, Linienart, Organisation, Plan, Stelle, ZeichenRef } from "../modell/typen";
-import { eigeneVorlage } from "../zeichen/eigen/vorlagen";
-import { zeichenName } from "../zeichen/katalog";
+import { eigeneVorlage, ORG_FARBE } from "../zeichen/eigen/vorlagen";
+import { kennungMoeglich, zeichenKennung, zeichenName } from "../zeichen/katalog";
 import { HILFE, Hilfe } from "./hilfe";
 import { stelleTitel } from "./gliederung";
 import { ZeichenBild } from "./zeichen-bild";
@@ -69,6 +69,26 @@ export function StelleEigenschaften({ plan, stelle, ansicht, aendern }: { plan: 
                 const z = p.stellen[id]!.zeichen;
                 if (z?.quelle === "frei") z.text = e.target.value;
               }, `${id}.zeichentext`)} />
+            </label>
+          )}
+          {kennungMoeglich(stelle.zeichen) && (
+            <label className="feld">
+              Kennung im Zeichen (betrieben durch)
+              <input
+                list="kennung-vorschlaege"
+                value={zeichenKennung(stelle.zeichen)}
+                maxLength={6}
+                placeholder={ORG_FARBE[plan.organisation].kennung ? `z. B. ${ORG_FARBE[plan.organisation].kennung}` : "z. B. THW, FW"}
+                title="Steht klein unten rechts im Zeichen, z. B. THW oder FW"
+                onChange={(e) => aendern((p) => {
+                  const z = p.stellen[id]!.zeichen;
+                  if (!z) return;
+                  const wert = e.target.value.trim();
+                  // Eigene Vorlagen mit vorgegebener Kennung: "" blendet sie aus.
+                  if (wert || (z.quelle === "eigen" && eigeneVorlage(z.vorlage)?.vorgabe.kennung)) z.kennung = wert;
+                  else delete z.kennung;
+                }, `${id}.kennung`)}
+              />
             </label>
           )}
           <div className="zeile">
@@ -248,15 +268,26 @@ export function StelleEigenschaften({ plan, stelle, ansicht, aendern }: { plan: 
           </>
         )}
       </details>
+      <datalist id="kennung-vorschlaege">
+        {KENNUNG_VORSCHLAEGE.map((v) => (
+          <option key={v} value={v} />
+        ))}
+      </datalist>
       <datalist id="betrieb-vorschlaege">
         {BETRIEB_VORSCHLAEGE.map((v) => (
           <option key={v} value={v} />
         ))}
       </datalist>
-      <Zeichenpalette dialogRef={palette} aktuell={stelle.zeichen} organisation={plan.organisation} onWahl={(r: ZeichenRef | undefined) => aendern((p) => void (p.stellen[id]!.zeichen = r))} />
+      <Zeichenpalette dialogRef={palette} aktuell={stelle.zeichen} organisation={plan.organisation} onWahl={(r: ZeichenRef | undefined) => aendern((p) => {
+        // Kennung beim Zeichenwechsel mitnehmen, sofern das neue Zeichen sie tragen kann.
+        const alt = p.stellen[id]!.zeichen?.kennung;
+        p.stellen[id]!.zeichen = r && alt !== undefined && r.kennung === undefined && kennungMoeglich(r) ? { ...r, kennung: alt } : r;
+      })} />
     </div>
   );
 }
+
+const KENNUNG_VORSCHLAEGE = ["THW", "FW", "POL", "BW", "RD", "DRK", "ASB", "JUH", "MHD", "DLRG"];
 
 const ORGANISATIONEN: Array<[Organisation, string]> = [
   ["thw", "THW"], ["feuerwehr", "Feuerwehr"], ["polizei", "Polizei"], ["rettungsdienst", "Rettungsdienst"],

@@ -47,7 +47,7 @@ function text(t: string, x: number, y: number, breite: number, hoechstens: numbe
   return `<text style="${SCHRIFT} font-size: ${g}px; text-anchor: ${anker};" fill="${farbe}" x="${x}" y="${y}">${xml(t)}</text>`;
 }
 
-function kennungText(k: string | undefined, farbe: string, x = 236, y = 182): string {
+export function kennungText(k: string | undefined, farbe: string, x = 236, y = 182): string {
   if (!k) return "";
   return `<text style="${SCHRIFT} font-size: 26px; text-anchor: end;" fill="${farbe}" x="${x}" y="${y}">${xml(k)}</text>`;
 }

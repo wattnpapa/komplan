@@ -249,11 +249,17 @@ export interface Verbindung {
 
 export type ZeichenRef =
   /** Zeichen aus jonas-koeritz/Taktische-Zeichen, Schlüssel „Ordner/Dateiname". */
-  | { quelle: "katalog"; schluessel: string }
+  | { quelle: "katalog"; schluessel: string; kennung?: string }
   /** Eigene parametrisierte Vorlage (src/zeichen/eigen). */
-  | { quelle: "eigen"; vorlage: string; text?: string; organisation?: Organisation; staerke?: number }
+  | { quelle: "eigen"; vorlage: string; text?: string; organisation?: Organisation; staerke?: number; kennung?: string }
   /** Freies Textzeichen. */
-  | { quelle: "frei"; grundform: Grundform; text: string; farbe: string; textfarbe?: string };
+  | { quelle: "frei"; grundform: Grundform; text: string; farbe: string; textfarbe?: string; kennung?: string };
+
+/*
+ * `kennung`: wer die Stelle betreibt, klein unten rechts im Zeichen („THW",
+ * „FW"). Bei eigenen Vorlagen überschreibt sie die Vorgabe, "" blendet sie aus.
+ * Nur bei rechteckigen Zeichen (Führungsstelle, Einheit, Fahrzeug).
+ */
 
 export type Grundform =
   | "fuehrungsstelle"  // Rechteck mit Fahne

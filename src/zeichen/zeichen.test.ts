@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { EIGENE_VORLAGEN, passendeGroesse } from "./eigen/vorlagen";
-import { KATALOG, ordnerLaden, svgIdsPraefixen, zeichenSvg } from "./katalog";
+import { KATALOG, kennungMoeglich, ordnerLaden, svgIdsPraefixen, zeichenKennung, zeichenSvg } from "./katalog";
 import { SYNONYME, zeichenSuchen } from "./suche";
 
 describe("Katalog", () => {
@@ -22,6 +22,33 @@ describe("Katalog", () => {
     const svg = zeichenSvg({ quelle: "katalog", schluessel: "Führungsstellen/EAL" });
     expect(svg).toContain(">EAL</text>");
     expect(svg).toContain('viewBox="0 0 256 256"');
+  });
+});
+
+describe("Kennung (betrieben durch)", () => {
+  it("steht unten rechts in der Fahne einer Katalog-Führungsstelle", async () => {
+    await ordnerLaden("Führungsstellen");
+    const ref = { quelle: "katalog", schluessel: "Führungsstellen/EAL", kennung: "THW" } as const;
+    expect(kennungMoeglich(ref)).toBe(true);
+    const svg = zeichenSvg(ref);
+    expect(svg).toMatch(/text-anchor: end;" fill="#000000" x="236" y="182">THW<\/text><\/svg>$/);
+    expect(zeichenSvg({ quelle: "katalog", schluessel: "Führungsstellen/EAL" })).not.toContain("THW");
+  });
+
+  it("überschreibt die Vorgabe eigener Vorlagen, leer blendet sie aus", () => {
+    expect(zeichenKennung({ quelle: "eigen", vorlage: "eal-thw" })).toBe("THW");
+    expect(zeichenSvg({ quelle: "eigen", vorlage: "eal-thw", kennung: "FW" })).toContain(">FW</text>");
+    const leer = zeichenSvg({ quelle: "eigen", vorlage: "eal-thw", kennung: "" });
+    expect(leer).not.toContain(">THW</text>");
+    expect(zeichenSvg({ quelle: "eigen", vorlage: "elo", kennung: "FW" })).toContain(">FW</text>");
+  });
+
+  it("nur bei rechteckigen Zeichen", () => {
+    expect(kennungMoeglich({ quelle: "frei", grundform: "fuehrungsstelle", text: "EAL", farbe: "#ffff00" })).toBe(true);
+    expect(kennungMoeglich({ quelle: "frei", grundform: "raute", text: "LNA", farbe: "#ffff00" })).toBe(false);
+    expect(kennungMoeglich({ quelle: "eigen", vorlage: "hk" })).toBe(false);
+    expect(zeichenSvg({ quelle: "frei", grundform: "raute", text: "LNA", farbe: "#ffff00", kennung: "RD" })).not.toContain(">RD<");
+    expect(zeichenSvg({ quelle: "frei", grundform: "fuehrungsstelle", text: "EAL", farbe: "#ffff00", kennung: "FW" })).toContain(">FW</text>");
   });
 });
 
